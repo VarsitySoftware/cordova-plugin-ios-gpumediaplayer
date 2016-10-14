@@ -5,14 +5,14 @@
 //
 //
 
-#import "GPUVideo.h"
+#import "MediaPlayer.h"
 #import <Accounts/Accounts.h>
 
 #import <GPUImage/GPUImageMovieWriter.h>
 #import <GPUImage/GPUImageFilter.h>
 #import <GPUImage/GPUImageColorConversion.h>
 
-@implementation GPUVideo  
+@implementation MediaPlayer  
 @synthesize callbackId;
 
 - (void) startVideo:(CDVInvokedUrlCommand *)command {
