@@ -21,28 +21,28 @@
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:rim="http://www.blackberry.com/ns/widgets"
-    id="cordova-plugin-ios-mediaplayer"
+    id="cordova-plugin-ios-gpumediaplayer"
     version="1.0.0">
-    <name>MediaPlayer</name>
-    <description>Cordova Plugin for Playing Media Files</description>
+    <name>GPUMediaPlayer</name>
+    <description>Cordova Plugin for Playing Media Files with GPU</description>
     <license>Apache 2.0</license>
     <keywords>cordova,camera,gpu,filter</keywords>
-    <repo>https://github.com/VarsitySoftware/cordova-plugin-ios-mediaplayer.git</repo>
+    <repo>https://github.com/VarsitySoftware/cordova-plugin-ios-gpumediaplayer.git</repo>
 
-    <js-module src="www/mediaplayer.js" name="MediaPlayer">
-        <clobbers target="plugins.mediaPlayer" />
+    <js-module src="www/gpumediaplayer.js" name="GPUMediaPlayer">
+        <clobbers target="plugins.gpuMediaPlayer" />
     </js-module>
      
      <!-- ios -->
      <platform name="ios">
          <config-file target="config.xml" parent="/*">
-             <feature name="MediaPlayer">
-                 <param name="ios-package" value="MediaPlayer" />
+             <feature name="GPUMediaPlayer">
+                 <param name="ios-package" value="GPUMediaPlayer" />
              </feature>
          </config-file>
 
-         <header-file src="src/ios/MediaPlayer.h" />
-         <source-file src="src/ios/MediaPlayer.m" />
+         <header-file src="src/ios/GPUMediaPlayer.h" />
+         <source-file src="src/ios/GPUMediaPlayer.m" />
        
          <framework src="ImageIO.framework" weak="true" />
          <framework src="CoreLocation.framework" />
@@ -50,13 +50,13 @@
          <framework src="AssetsLibrary.framework" />
          <framework src="MobileCoreServices.framework" />
          <framework src="CoreGraphics.framework" />
-	       <framework src="CoreMedia.framework" />
-	       <framework src="CoreVideo.framework" />
-	       <framework src="OpenGLES.framework" />
-	       <framework src="QuartzCore.framework" />
-	       <framework src="UIKit.framework" />
-	       <framework src="AVFoundation.framework" />
-	       <framework src="Foundation.framework" />
+         <framework src="CoreMedia.framework" />
+         <framework src="CoreVideo.framework" />
+         <framework src="OpenGLES.framework" />
+         <framework src="QuartzCore.framework" />
+         <framework src="UIKit.framework" />
+         <framework src="AVFoundation.framework" />
+         <framework src="Foundation.framework" />
          
          <framework src="src/ios/GPUImage.framework" custom="true"/>
          
