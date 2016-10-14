@@ -1,1 +1,1 @@
-# cordova-plugin-ios-mediaplayer
+# cordova-plugin-ios-gpumediaplayer
