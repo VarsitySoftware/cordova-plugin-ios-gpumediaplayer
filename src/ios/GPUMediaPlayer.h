@@ -75,7 +75,7 @@ This property is not key-value observable.
 -(void)pauseVideo:(CDVInvokedUrlCommand *)command;
 @end
 
-@interface MediaPlayer : CDVPlugin < UINavigationControllerDelegate, UIScrollViewDelegate>
+@interface GPUMediaPlayer : CDVPlugin < UINavigationControllerDelegate, UIScrollViewDelegate>
 {
 	GPUVideoMovie *movieFile;
 	GPUImageOutput<GPUImageInput> *filter;
