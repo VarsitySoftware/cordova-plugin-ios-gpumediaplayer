@@ -1,18 +1,18 @@
-cordova.define("cordova-plugin-ios-mediaplayer.MediaPlayer", function(require, exports, module) {
+cordova.define("cordova-plugin-ios-gpumediaplayer.GPUMediaPlayer", function(require, exports, module) {
 /*global cordova,window,console*/
 /**
- * A Media Player plugin for Cordova
+ * A GPU Media Player plugin for Cordova
  * 
  * Developed by John Weaver for Varsity Software
  */
 
 
-    var MediaPlayer = function ()
+    var GPUMediaPlayer = function ()
     {
 
     };
 
-    MediaPlayer.prototype.startVideo = function (success, fail, options)
+    GPUMediaPlayer.prototype.startVideo = function (success, fail, options)
     {
         if (!options) {
             options = {};
@@ -33,26 +33,26 @@ cordova.define("cordova-plugin-ios-mediaplayer.MediaPlayer", function(require, e
             captionFontSize: options.captionFontSize ? options.captionFontSize : 0,
         };
 
-        return cordova.exec(success, fail, "MediaPlayer", "startVideo", [params]);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "startVideo", [params]);
 
     };
 
-    MediaPlayer.prototype.pauseVideo = function (success, fail, options)
+    GPUMediaPlayer.prototype.pauseVideo = function (success, fail, options)
     {
-        return cordova.exec(success, fail, "MediaPlayer", "pauseVideo", null);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "pauseVideo", null);
     };
 
-    MediaPlayer.prototype.playVideo = function (success, fail, options)
+    GPUMediaPlayer.prototype.playVideo = function (success, fail, options)
     {
-        return cordova.exec(success, fail, "MediaPlayer", "playVideo", null);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "playVideo", null);
     };
 
-    MediaPlayer.prototype.stopVideo = function (success, fail, options)
+    GPUMediaPlayer.prototype.stopVideo = function (success, fail, options)
     {
-        return cordova.exec(success, fail, "MediaPlayer", "stopVideo", null);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "stopVideo", null);
     };
 
-    MediaPlayer.prototype.changeFilter = function (success, fail, options)
+    GPUMediaPlayer.prototype.changeFilter = function (success, fail, options)
     {
         if (!options) {
             options = {};
@@ -62,10 +62,10 @@ cordova.define("cordova-plugin-ios-mediaplayer.MediaPlayer", function(require, e
             filterID: options.filterID ? options.filterID : 0
         };
 
-        return cordova.exec(success, fail, "MediaPlayer", "changeFilter", [params]);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "changeFilter", [params]);
     };
 
-    MediaPlayer.prototype.changeFrame = function (success, fail, options)
+    GPUMediaPlayer.prototype.changeFrame = function (success, fail, options)
     {
         if (!options) {
             options = {};
@@ -75,10 +75,10 @@ cordova.define("cordova-plugin-ios-mediaplayer.MediaPlayer", function(require, e
             frameID: options.frameID ? options.frameID : 0
         };
 
-        return cordova.exec(success, fail, "MediaPlayer", "changeFrame", [params]);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "changeFrame", [params]);
     };
 
-    MediaPlayer.prototype.addSticker = function (success, fail, options)
+    GPUMediaPlayer.prototype.addSticker = function (success, fail, options)
     {
         if (!options) {
             options = {};
@@ -88,10 +88,10 @@ cordova.define("cordova-plugin-ios-mediaplayer.MediaPlayer", function(require, e
             stickerID: options.stickerID ? options.stickerID : 0
         };
 
-        return cordova.exec(success, fail, "MediaPlayer", "addSticker", [params]);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "addSticker", [params]);
     };
 
-    MediaPlayer.prototype.addLabel = function (success, fail, options)
+    GPUMediaPlayer.prototype.addLabel = function (success, fail, options)
     {
         if (!options) {
             options = {};
@@ -101,10 +101,10 @@ cordova.define("cordova-plugin-ios-mediaplayer.MediaPlayer", function(require, e
             labelID: options.labelID ? options.labelID : 0
         };
 
-        return cordova.exec(success, fail, "MediaPlayer", "addLabel", [params]);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "addLabel", [params]);
     };
 
-    MediaPlayer.prototype.updateLabel = function (success, fail, options)
+    GPUMediaPlayer.prototype.updateLabel = function (success, fail, options)
     {
         if (!options) {
             options = {};
@@ -116,10 +116,10 @@ cordova.define("cordova-plugin-ios-mediaplayer.MediaPlayer", function(require, e
             labelSize: options.labelSize ? options.labelSize : 0,
         };
 
-        return cordova.exec(success, fail, "MediaPlayer", "updateLabel", [params]);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "updateLabel", [params]);
     };
 
-    MediaPlayer.prototype.updateSticker = function (success, fail, options)
+    GPUMediaPlayer.prototype.updateSticker = function (success, fail, options)
     {
         if (!options) {
             options = {};
@@ -131,14 +131,14 @@ cordova.define("cordova-plugin-ios-mediaplayer.MediaPlayer", function(require, e
             stickerSize: options.stickerSize ? options.stickerSize : 0,
         };
 
-        return cordova.exec(success, fail, "MediaPlayer", "updateSticker", [params]);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "updateSticker", [params]);
     };
 
-    MediaPlayer.prototype.saveVideo = function (success, fail, options)
+    GPUMediaPlayer.prototype.saveVideo = function (success, fail, options)
     {
-        return cordova.exec(success, fail, "MediaPlayer", "saveVideo", null);
+        return cordova.exec(success, fail, "GPUMediaPlayer", "saveVideo", null);
     };
 
-    window.mediaPlayer = new MediaPlayer();
+    window.gpuMediaPlayer = new GPUMediaPlayer();
 
 });
