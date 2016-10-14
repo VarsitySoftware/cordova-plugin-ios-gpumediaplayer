@@ -1,4 +1,3 @@
-cordova.define("cordova-plugin-ios-gpumediaplayer.GPUMediaPlayer", function(require, exports, module) {
 /*global cordova,window,console*/
 /**
  * A GPU Media Player plugin for Cordova
@@ -141,4 +140,4 @@ cordova.define("cordova-plugin-ios-gpumediaplayer.GPUMediaPlayer", function(requ
 
     window.gpuMediaPlayer = new GPUMediaPlayer();
 
-});
+
