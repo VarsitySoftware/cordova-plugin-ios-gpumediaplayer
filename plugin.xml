@@ -23,7 +23,7 @@
     xmlns:rim="http://www.blackberry.com/ns/widgets"
     id="cordova-plugin-ios-gpumediaplayer"
     version="1.0.0">
-    <name>GPUMediaPlayer</name>
+    <name>GPU Media Player</name>
     <description>Cordova Plugin for Playing Media Files with GPU</description>
     <license>Apache 2.0</license>
     <keywords>cordova,camera,gpu,filter</keywords>
