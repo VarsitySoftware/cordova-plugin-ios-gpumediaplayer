@@ -1,19 +1,19 @@
 //
-//  MediaPlayer.h
-//  
+//  GPUMediaPlayer.h
+//   
 //
-//  Created by John Weaver on 10/12/2016.
+//  Created by John Weaver on 10/12/2016. 
 //
 //
 
-#import <Cordova/CDVPlugin.h>
+#import <Cordova/CDVPlugin.h> 
 #import <GPUImage/GPUImageFramework.h>
 #import <GPUImage/GPUImageContext.h>
 #import <GPUImage/GPUImageOutput.h>
 
 /** Protocol for getting Movie played callback.
 */
-@protocol GPUVideoMovieDelegate <NSObject>
+@protocol GPUImageMoviePlusDelegate <NSObject>
 
 -(void)didCompletePlayingMovie;
 
@@ -21,7 +21,7 @@
 
 /** Source object for filtering movies
 */
-@interface GPUVideoMovie : GPUImageOutput
+@interface GPUImageMoviePlus : GPUImageOutput 
 
 @property (readwrite, retain) AVAsset *asset;
 @property (readwrite, retain) AVPlayerItem *playerItem;
@@ -32,6 +32,10 @@
 @property(readwrite, nonatomic) float currentTime;
 @property(readwrite, nonatomic) int currentTimeInSecs;
 @property(readwrite, nonatomic) float duration;
+
+@property(readwrite, nonatomic) int framesPerSecond;
+@property(readwrite, nonatomic) int frameSkipper;
+@property(readwrite, nonatomic) int skipRate;
 
 /** This enables the benchmarking mode, which logs out instantaneous and average frame times to the console
 */
@@ -51,16 +55,16 @@ This property is not key-value observable.
 @property(readonly, nonatomic) float progress;
 
 /** This is used to send the delete Movie did complete playing alert
-*/
-@property (readwrite, nonatomic, assign) id <GPUImageMovieDelegate>delegate;
+*/ 
+@property (readwrite, nonatomic, assign) id <GPUImageMovieDelegate>delegate;  
 
-@property (readonly, nonatomic) AVAssetReader *assetReader;
+@property (readonly, nonatomic) AVAssetReader *assetReader; 
 @property (readonly, nonatomic) BOOL audioEncodingIsFinished;
 @property (readonly, nonatomic) BOOL videoEncodingIsFinished;
-
+  
 /// @name Initialization and teardown
 -(id)initWithAsset:(AVAsset *)asset;
--(id)initWithPlayerItem:(AVPlayerItem *)playerItem;
+-(id)initWithPlayerItem:(AVPlayerItem *)playerItem; 
 -(id)initWithURL:(NSURL *)url;
 -(void)yuvConversionSetup;
 
@@ -69,35 +73,41 @@ This property is not key-value observable.
 -(BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput;
 -(BOOL)readNextAudioSampleFromOutput:(AVAssetReaderOutput *)readerAudioTrackOutput;
 -(void)startProcessing;
--(void)endProcessing;
+-(void)endProcessing; 
 -(void)cancelProcessing;
 -(void)processMovieFrame:(CMSampleBufferRef)movieSampleBuffer;
--(void)pauseVideo:(CDVInvokedUrlCommand *)command;
+-(void)pauseVideo:(CDVInvokedUrlCommand *)command; 
+
 @end
 
 @interface GPUMediaPlayer : CDVPlugin < UINavigationControllerDelegate, UIScrollViewDelegate>
 {
-	GPUVideoMovie *movieFile;
-	GPUImageOutput<GPUImageInput> *filter;
+	GPUImageMoviePlus *mediaFile; 
+	GPUImageOutput<GPUImageInput> *mediaFilter;   
 	GPUImageOutput<GPUImageInput> *saveFilter;
 	GPUImageOverlayBlendFilter *overlayFilter;
 	GPUImagePicture *overlay;
 	GPUImageMovieWriter *movieWriter;
-	GPUImageMovie *videoFile;
+	GPUImageMovie *saveFile;
 	NSTimer * timer;
-	NSTimer *saveTimer;
+	NSTimer *saveTimer; 
 }
 
 @property (copy)NSString* callbackId;
 
 @property (nonatomic, strong)AVAudioPlayer *audioPlayer;
 @property (strong, nonatomic) UIView* rootView;
-@property (strong, nonatomic) UIScrollView* scrollView;
+@property (strong, nonatomic) UIScrollView* scrollView; 
 
-@property (strong, nonatomic) UIView* viewContainer;
+@property (strong, nonatomic) NSURL* mediaLocalURL;
+@property(readwrite, nonatomic) int mediaType; 
 
-@property (strong, nonatomic) UIView* maskView;
-@property (strong, nonatomic) UIView* videoView;
+@property (strong, nonatomic) UIView* mediaContainer;
+@property (strong, nonatomic) UIView* mediaView;
+@property (strong, nonatomic) UIView* mediaMask;
+
+@property(readwrite, nonatomic) BOOL mediaMaskEnabled; 
+@property(readwrite, nonatomic) BOOL mediaFrameEnabled;
 
 @property (readwrite, nonatomic) CDVPluginResult* pluginResult;
 
@@ -108,15 +118,13 @@ This property is not key-value observable.
 @property (strong, nonatomic) UIImageView* overlayView;
 @property (strong, nonatomic) UIImageView* frameView;
 
-@property (strong, nonatomic) NSURL* localURL;
+@property(readwrite, nonatomic) int currentTag;
 
-@property(readwrite, nonatomic) int currentTextFieldTag;
-
--(void)startVideo:(CDVInvokedUrlCommand *)command;
--(void)stopVideo:(CDVInvokedUrlCommand *)command;
--(void)playVideo:(CDVInvokedUrlCommand *)command;
--(void)pauseVideo:(CDVInvokedUrlCommand *)command;
--(void)saveVideo:(CDVInvokedUrlCommand *)command;
+-(void)start:(CDVInvokedUrlCommand *)command;
+-(void)play:(CDVInvokedUrlCommand *)command;
+-(void)pause:(CDVInvokedUrlCommand *)command;
+-(void)stop:(CDVInvokedUrlCommand *)command;
+-(void)save:(CDVInvokedUrlCommand *)command;
 
 -(void)changeFilter:(CDVInvokedUrlCommand *)command;
 -(void)changeFrame:(CDVInvokedUrlCommand *)command;
@@ -126,5 +134,8 @@ This property is not key-value observable.
 
 -(void)addLabel:(CDVInvokedUrlCommand *)command;
 -(void)updateLabel:(CDVInvokedUrlCommand *)command;
+
+-(void)createGIFfromURL:(NSURL*)videoURL framesPerSecond : (int)framesPerSecond loopCount : (int)loopCount completion : (void(^)(NSURL *GifURL))completionBlock;
+-(void)optimalGIFfromURL:(NSURL*)videoURL loopCount : (int)loopCount playbackSpeed: (int)playbackSpeed maxDuration:(int)maxDuration completion : (void(^)(NSURL *GifURL))completionBlock;
 
 @end
