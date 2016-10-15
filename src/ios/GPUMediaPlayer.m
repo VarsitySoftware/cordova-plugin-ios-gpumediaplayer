@@ -1,7 +1,7 @@
 //
-//  GPUVideo.m
+//  GPUMediaPlayer.m
 //
-//  Created by John Weaver on 10/12/2016
+//  Created by John Weaver on 10/12/2016 
 //
 //
 
@@ -12,164 +12,340 @@
 #import <GPUImage/GPUImageFilter.h>
 #import <GPUImage/GPUImageColorConversion.h>
 
+#import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
+#import <ImageIO/ImageIO.h>
+#import <AVFoundation/AVFoundation.h>
+#import <MobileCoreServices/MobileCoreServices.h>
+#import <UIKit/UIKit.h>
+
+#import <Photos/Photos.h>  
+
 @implementation GPUMediaPlayer  
 @synthesize callbackId;
 
-- (void) startVideo:(CDVInvokedUrlCommand *)command {
+- (void) start:(CDVInvokedUrlCommand *)command {
     
+	///////////////////////////////////////// 
+	// SET VARS
+	/////////////////////////////////////////
+
 	self.callbackId = command.callbackId;
 
     NSDictionary *options = [command.arguments objectAtIndex: 0];
   
-	NSString * strVideoURL = [options objectForKey:@"videoURL"];
+	NSString * strMediaURL = [options objectForKey:@"mediaURL"];
+	int intOrientation = [[options objectForKey:@"mediaOrientation"] integerValue];
+	int intMediaType = [[options objectForKey:@"mediaType"] integerValue];
 
-	int intVideoPosX = [[options objectForKey:@"videoPosX"] integerValue];
-    int intVideoPosY = [[options objectForKey:@"videoPosY"] integerValue];
-    int intVideoWidth = [[options objectForKey:@"videoWidth"] integerValue];
-    int intVideoHeight = [[options objectForKey:@"videoHeight"] integerValue];
+	int intFramesPerSecond = [[options objectForKey:@"framesPerSecond"] integerValue];
 
-	int intContainerPosX = [[options objectForKey:@"containerPosX"] integerValue];
-    int intContainerPosY = [[options objectForKey:@"containerPosY"] integerValue];
-    int intContainerWidth = [[options objectForKey:@"containerWidth"] integerValue];
-    int intContainerHeight = [[options objectForKey:@"containerHeight"] integerValue];
+	int intMediaPosX = [[options objectForKey:@"mediaPosX"] integerValue];
+    int intMediaPosY = [[options objectForKey:@"mediaPosY"] integerValue];
+    int intMediaWidth = [[options objectForKey:@"mediaWidth"] integerValue];
+    int intMediaHeight = [[options objectForKey:@"mediaHeight"] integerValue];
 
-	int intOrientation = [[options objectForKey:@"orientation"] integerValue];
+	int intPlayerPosX = [[options objectForKey:@"playerPosX"] integerValue];
+    int intPlayerPosY = [[options objectForKey:@"playerPosY"] integerValue];
+    int intPlayerWidth = [[options objectForKey:@"playerWidth"] integerValue];
+    int intPlayerHeight = [[options objectForKey:@"playerHeight"] integerValue];
 
+	int intFrameEnabled = [[options objectForKey:@"frameEnabled"] integerValue];
+	NSString * strFrameShapeURL = [options objectForKey:@"frameShapeURL"];
+	NSString * strFrameThemeURL = [options objectForKey:@"frameThemeURL"];
+
+	int intOverlayEnabled = [[options objectForKey:@"overlayEnabled"] integerValue];
+	NSString * strOverlayURL = [options objectForKey:@"overlayURL"];
+
+	int intCaptionEnabled = [[options objectForKey:@"captionEnabled"] integerValue];
 	NSString * strCaptionText= [options objectForKey:@"captionText"];
 	int intCaptionFontSize = [[options objectForKey:@"captionFontSize"] integerValue];
 
-	NSURL* remoteURL = [NSURL URLWithString:strVideoURL];   
+	NSURL* mediaRemoteURL = [NSURL URLWithString:strMediaURL];   
+	
+	NSString * strMediaFileExtension;
+	NSError* error = nil;
+
+	self.jsonResults = [ [NSMutableDictionary alloc]
+        initWithObjectsAndKeys :
+        nil, @"duration",
+        nil, @"currentTime",                             
+        nil
+    ]; 
+
+	/////////////////////////////////////////
+	// SET ROOT VIEW
+	/////////////////////////////////////////
 
 	self.rootView = [[[UIApplication sharedApplication] keyWindow] rootViewController].view;
 		
-	// HAVE TO DOWNLOAD FILE TO DEVICE IN ORDER TO PLAY!!!!
-	//NSURL* localURL = [self saveLocalFileFromRemoteUrl: remoteURL extension:@"mp4"]; 
-	self.localURL = [self saveLocalFileFromRemoteUrl: remoteURL extension:@"mp4"]; 
+	////////////////////////////////////
+	// ADD TAP RECOGNIZER TO ROOT VIEW SO KEYBOARD GETS DISMISSED IF ADDING LABELS
+	////////////////////////////////////
 
-	movieFile = [[GPUVideoMovie alloc] initWithURL:self.localURL];		 
-    //movieFile.runBenchmark = YES;
-    movieFile.playAtActualSpeed = YES;
-    movieFile.pause = NO;
-	movieFile.stop = NO;
-	movieFile.currentTimeInSecs = 0;
+	UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]  initWithTarget:self action:@selector(dismissKeyboard)];
+	[self.rootView addGestureRecognizer:tap];	
 
-	self.viewContainer = [[UIView alloc] initWithFrame:CGRectMake(intVideoPosX, intVideoPosY, intVideoWidth, intVideoHeight)];
-	[self addMovementGesturesToView:self.viewContainer];
+	////////////////////////////////////////
+	// SET MEDIA TYPE
+	/////////////////////////////////////////
+
+	self.mediaType = intMediaType;
+
+	////////////////////////////////////////
+	// SET MEDIA FILE EXTENSION
+	/////////////////////////////////////////
+
+	strMediaFileExtension = @"mp4";
+
+	//if (intMediaType == 1) // 1 = video
+	//{		
+		//strMediaFileExtension = @"mp4";
+	//}
+	//else if (intMediaType == 2) // 2 = GIF
+	//{
+		//strMediaFileExtension = @"gif";
+	//}
+
+	///////////////////////////////////////// 
+	// DOWNLOAD MEDIA FILE TO DEVICE IN ORDER TO PLAY  
+	/////////////////////////////////////////
+
+	self.mediaLocalURL = [self saveLocalFileFromRemoteUrl: mediaRemoteURL extension:strMediaFileExtension]; 
+
+	/////////////////////////////////////////
+	// CREATE MEDIA FILE INSTANCE FROM LOCAL FILE
+	// THIS IS BASED ON GPUImageMovie from Brad Larson
+	/////////////////////////////////////////  
 	
-	self.videoView = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intVideoWidth, intVideoHeight)];		
-	[self.viewContainer addSubview:self.videoView];
+	mediaFile = [[GPUImageMoviePlus alloc] initWithURL:self.mediaLocalURL];		     
+    mediaFile.playAtActualSpeed = YES;
+    mediaFile.pause = NO;
+	mediaFile.stop = NO;
+	mediaFile.currentTimeInSecs = 0;
+	mediaFile.frameSkipper = 1;
+	mediaFile.framesPerSecond = intFramesPerSecond;	
+	mediaFile.skipRate = 30 / mediaFile.framesPerSecond;
 
-	self.maskView = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intVideoWidth, intVideoHeight)];	
-	self.maskView.backgroundColor = [UIColor clearColor];
-	[self.viewContainer addSubview:self.maskView];
+	//mediaFile.runBenchmark = YES; 
 
-	filter = [[GPUImageBrightnessFilter alloc] init];
+	///////////////////////////////////////// 
+	// CREATE MEDIA CONTAINER
+	/////////////////////////////////////////
 
-	////////////////////////////////////
-	// CUSTOM FILTER
-	////////////////////////////////////
+	self.mediaContainer = [[UIView alloc] initWithFrame:CGRectMake(intMediaPosX, intMediaPosY, intMediaWidth, intMediaHeight)];
+	[self addMovementGesturesToView:self.mediaContainer];
+	
+	///////////////////////////////////////// 
+	// CREATE MEDIA VIEW
+	/////////////////////////////////////////
 
-	if (1 == 1)
+	self.mediaView = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)];		
+	[self.mediaContainer addSubview:self.mediaView];
+
+	///////////////////////////////////////// 
+	// CREATE MEDIA MASK
+	/////////////////////////////////////////
+
+	self.mediaMask = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)];	
+	self.mediaMask.backgroundColor = [UIColor clearColor];
+	self.mediaMask.opaque = NO;
+
+	[self.mediaContainer addSubview:self.mediaMask];
+
+	///////////////////////////////////////// 
+	// CREATE MEDIA FILTER IN ORDER TO USE GPU PROCESSING
+	// START WITH A SIMPLE BRIGHTNESS FILTER WITH NO ADJUSTMENTS
+	/////////////////////////////////////////
+
+	if (mediaFilter == nil)
 	{
-		[movieFile addTarget:filter];	
-		[filter addTarget:self.videoView];		
+		mediaFilter = [[GPUImageBrightnessFilter alloc] init];
 	}
-	
-	if (1 == 1)  //FRAME
-	{
-		NSString *const kGPUImageColorDodgeBlendFragmentShaderString = SHADER_STRING
-		(	
-			 precision mediump float;
- 
-			 varying highp vec2 textureCoordinate;
-			 varying highp vec2 textureCoordinate2;
- 
-			 uniform sampler2D inputImageTexture;
-			 uniform sampler2D inputImageTexture2; 
- 
-			 void main() 
-			 { 
-				vec4 shape = texture2D(inputImageTexture, textureCoordinate);
-				vec4 theme = texture2D(inputImageTexture2, textureCoordinate2);
 
-				gl_FragColor = shape;		
+	///////////////////////////////////////// 
+	// CREATE DEFAULT SAVE FILTER
+	/////////////////////////////////////////
+
+	saveFilter = [[GPUImageBrightnessFilter alloc] init];	 
+
+	///////////////////////////////////////// 
+	// ADD MEDIA FILTER TO MEDIA FILE
+	/////////////////////////////////////////
+
+	[mediaFile addTarget:mediaFilter];	
+	[mediaFilter addTarget:self.mediaView];		
+
+	////////////////////////////////////
+	// USE FRAME?
+	////////////////////////////////////
+	
+	if (intFrameEnabled == 1 || self.mediaFrameEnabled == YES)  //FRAME
+	{
+		self.mediaFrameEnabled = YES;
+
+		if (self.frameView != nil)
+		{
+			////////////////////////////////////
+			// ADD FRAME VIEW TO MASK
+			////////////////////////////////////
 		
-				if (shape.a <= 0.2) 
-				{ 					
-					gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-				}
-				else if (shape.x <= 0.2) 
-				{ 					
-					gl_FragColor = theme; 
-				}
-				else if (shape.x >= 0.8) 
-				{
-					gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);		
-				}   
-			 }
-		);  
+			[self.mediaMask addSubview:self.frameView];
+			self.mediaMaskEnabled = YES;
+		}		
+		else
+		{
+			////////////////////////////////////
+			// CREATE CUSTOM SHADER STRING
+			////////////////////////////////////
 
-		NSError* error = nil;
-		NSData* dataShape = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"http://192.168.1.2/shape_0.png"] options:NSDataReadingUncached error:&error];
-		if (error) {
-			NSLog(@"%@", [error localizedDescription]);			
-		} else {
-			NSLog(@"Data has loaded successfully.");
-			NSLog(@"length: %i", dataShape.length); 
-		}
+			NSString *const kShaderString = SHADER_STRING
+			(	
+				 precision mediump float;
+ 
+				 varying highp vec2 textureCoordinate;
+				 varying highp vec2 textureCoordinate2;
+ 
+				 uniform sampler2D inputImageTexture;
+				 uniform sampler2D inputImageTexture2; 
+ 
+				 void main() 
+				 { 
+					vec4 shape = texture2D(inputImageTexture, textureCoordinate);
+					vec4 theme = texture2D(inputImageTexture2, textureCoordinate2);
 
-		UIImage *shapeImage = [UIImage imageWithData:dataShape];
-		//UIImage *shapeImage = [UIImage imageWithData:UIImageJPEGRepresentation(dataShape, 0)];
-		NSData *jpgDataHighestCompressionQuality = UIImageJPEGRepresentation(shapeImage, 1.0);
-		shapeImage = [UIImage imageWithData:jpgDataHighestCompressionQuality];
+					gl_FragColor = shape;		
+		
+					if (shape.a <= 0.2) 
+					{ 					
+						gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+					}
+					else if (shape.x <= 0.2) 
+					{ 					
+						gl_FragColor = theme; 
+					}
+					else if (shape.x >= 0.8) 
+					{
+						gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);		
+					}   
+				 }
+			);  
 
-		////////////////////////////////
-		// MAKE WHITE COLOR TRANSPARENT IN shape
-		// THIS IS NECESSARY WHEN SAVING MASK
-		//http://stackoverflow.com/questions/19443311/how-to-make-one-colour-transparent-in-uiimage
-		// WTF is colorMasking var?!?
-		// element #1 is R-MIN, element #2 is R-MAX, element #3 is G-MIN, element #4 is G-MAX, element #5 is B-MIN, element #6 is B-MAX
-		////////////////////////////////
+			////////////////////////////////////
+			// CREATE A TWO INPUT FILTER USING THE CUSTOM SHADER STRING
+			////////////////////////////////////
 
-		shapeImage = [self changeWhiteColorTransparent: shapeImage];
+			GPUImageTwoInputFilter * frameFilter = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kShaderString];
 
-		NSData* dataTheme = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"http://192.168.1.2/theme_0.png"] options:NSDataReadingUncached error:&error];
-		if (error) {
-			NSLog(@"%@", [error localizedDescription]);			
-		} else {
-			NSLog(@"Data has loaded successfully.");
-			NSLog(@"length: %i", dataShape.length); 
-		}
+			////////////////////////////////////
+			// GET SHAPE FILE FROM URL as NSDATA
+			////////////////////////////////////
+		
+			NSData* dataShape = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameShapeURL] options:NSDataReadingUncached error:&error];
+			if (error) {
+				NSLog(@"%@", [error localizedDescription]);			
+			} else {
+				NSLog(@"Shape of size %i has loaded successfully!", dataShape.length);
+				//NSLog(@"length: %i", dataShape.length); 
+			}
 
-		UIImage *themeImage = [UIImage imageWithData:dataTheme]; 
+			////////////////////////////////////
+			// CONVERT NSDATA TO UIImage
+			////////////////////////////////////
 
-		GPUImagePicture *shapePicture = [[GPUImagePicture alloc] initWithImage:shapeImage smoothlyScaleOutput:YES];
-		GPUImagePicture *themePicture = [[GPUImagePicture alloc] initWithImage:themeImage smoothlyScaleOutput:YES];
+			UIImage *shapeImage = [UIImage imageWithData:dataShape];
+		
+			////////////////////////////////////
+			// CONVERT UIImage to JPEG
+			////////////////////////////////////
+
+			NSData *jpgDataHighestCompressionQuality = UIImageJPEGRepresentation(shapeImage, 1.0);
+			shapeImage = [UIImage imageWithData:jpgDataHighestCompressionQuality];
+
+			////////////////////////////////////
+			// MAKE WHITE COLOR TRANSPARENT IN SHAPE
+			// THIS IS NECESSARY WHEN SAVING MASK
+			//http://stackoverflow.com/questions/19443311/how-to-make-one-colour-transparent-in-uiimage
+			// WTF is colorMasking var?!?
+			// element #1 is R-MIN, element #2 is R-MAX, element #3 is G-MIN, element #4 is G-MAX, element #5 is B-MIN, element #6 is B-MAX
+			////////////////////////////////////
+
+			shapeImage = [self changeWhiteColorTransparent: shapeImage];
+
+			////////////////////////////////////
+			// GET THEME FILE FROM URL as NSDATA
+			////////////////////////////////////
+
+			NSData* dataTheme = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameThemeURL] options:NSDataReadingUncached error:&error];
+			if (error) {
+				NSLog(@"%@", [error localizedDescription]);			
+			} else {
+				NSLog(@"Theme of size %i has loaded successfully!", dataTheme.length);			
+			}
+
+			////////////////////////////////////
+			// CONVERT NSDATA TO UIImage
+			////////////////////////////////////
+
+			UIImage *themeImage = [UIImage imageWithData:dataTheme]; 
+
+			////////////////////////////////////
+			// CREATE GPUImagePictures from SHAPE & THEME
+			////////////////////////////////////
+
+			GPUImagePicture *shapePicture = [[GPUImagePicture alloc] initWithImage:shapeImage smoothlyScaleOutput:YES];
+			GPUImagePicture *themePicture = [[GPUImagePicture alloc] initWithImage:themeImage smoothlyScaleOutput:YES];
 		 
-		GPUImageTwoInputFilter * filter3 = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kGPUImageColorDodgeBlendFragmentShaderString];
+			////////////////////////////////////
+			// ADD SHAPE & THEME TO FRAME FILTER & PROCESS
+			////////////////////////////////////
 
-		[shapePicture addTarget:filter3];	 
-		[themePicture addTarget:filter3];		 
+			[shapePicture addTarget:frameFilter];	 
+			[themePicture addTarget:frameFilter];		 
 
-		[filter3 useNextFrameForImageCapture];
-		[shapePicture processImage];
-		[themePicture processImage];
+			[frameFilter useNextFrameForImageCapture];
 
-		UIImage *framePicture = [filter3 imageFromCurrentFramebuffer];
+			[shapePicture processImage];
+			[themePicture processImage]; 
 
-		UIView *v = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
-		self.frameView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intVideoWidth, intVideoHeight)]; 
-		[self.frameView setImage:framePicture];		
+			////////////////////////////////////
+			// GET COMBINED SHAPE & THEME IMAGE
+			////////////////////////////////////
 
-		[self.maskView addSubview:self.frameView];
+			UIImage *frameImage = [frameFilter imageFromCurrentFramebuffer];
+
+			////////////////////////////////////
+			// CREATE FRAME VIEW
+			////////////////////////////////////
+
+			self.frameView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
+		
+			////////////////////////////////////
+			// ADD IMAGE TO FRAME VIEW
+			////////////////////////////////////
+		 
+			[self.frameView setImage:frameImage];		
+
+			////////////////////////////////////
+			// ADD FRAME VIEW TO MASK
+			////////////////////////////////////
+		
+			[self.mediaMask addSubview:self.frameView];
+			self.mediaMaskEnabled = YES;
+		}
 	}
 
-	if (strCaptionText != nil)
+	////////////////////////////////////
+	// ADD CAPTION?
+	////////////////////////////////////
+
+	if (intCaptionEnabled == 1)
 	{	
 	    //https://www.cocoanetics.com/2014/06/object-overlay-on-video/
 
 		int intCaptionHeight = intCaptionFontSize + 10;
-		self.captionLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, intVideoHeight - intCaptionHeight, intVideoWidth, intCaptionHeight)];
+
+		self.captionLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, intMediaHeight - intCaptionHeight, intMediaWidth, intCaptionHeight)];
 		self.captionLabel.text = strCaptionText;		
 		self.captionLabel.font = [UIFont systemFontOfSize:intCaptionFontSize];
 		self.captionLabel.textColor = [UIColor whiteColor];
@@ -177,95 +353,714 @@
 		self.captionLabel.hidden = NO;
 		self.captionLabel.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5f];
 		self.captionLabel.textAlignment = UITextAlignmentCenter;
-		[self.maskView addSubview:self.captionLabel];
+
+		[self.mediaMask addSubview:self.captionLabel];
+		self.mediaMaskEnabled = YES;
 	} 
 
-	if (1 == 1)
+	////////////////////////////////////
+	// ADD OVERLAY?
+	////////////////////////////////////
+
+	if (intOverlayEnabled == 1)
 	{	
-		NSError* error = nil;
-		NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"http://192.168.1.2/overlay.png"] options:NSDataReadingUncached error:&error];
+		NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:strOverlayURL] options:NSDataReadingUncached error:&error];
 		if (error) {
 			NSLog(@"%@", [error localizedDescription]);			
 		} else {
-			NSLog(@"Data has loaded successfully.");
-			NSLog(@"length: %i", data.length); 
+			NSLog(@"Overlay of size %i has loaded successfully!", data.length);			
 		}
 
-		UIImage *inputImage = [UIImage imageWithData:data];
+		////////////////////////////////////
+		// CREATE IMAGE from NSDATA
+		////////////////////////////////////
 
-		UIView *v = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
-		self.overlayView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intVideoWidth, intVideoHeight)]; 
-		[self.overlayView setImage:inputImage];
-		[self.maskView addSubview:self.overlayView];
+		UIImage *overlayImage = [UIImage imageWithData:data];
+
+		////////////////////////////////////
+		// CREATE OVERLAY VIEW
+		////////////////////////////////////
+		
+		self.overlayView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
+
+		////////////////////////////////////
+		// ADD IMAGE TO VIEW
+		////////////////////////////////////		
+		
+		[self.overlayView setImage:overlayImage];
+
+		////////////////////////////////////
+		// ADD VIEW TO MASK
+		////////////////////////////////////		
+
+		[self.mediaMask addSubview:self.overlayView];
+		self.mediaMaskEnabled = YES;
 	}	
 
-	if (intOrientation == 1) // PORTRAIT
-	{		//[movieFile addTarget:self.videoView];
-	}
+	////////////////////////////////////
+	// IS LANDSCAPE?
+	////////////////////////////////////
 
 	if (intOrientation == 2) // LANDSCAPE
 	{
-		[filter setInputRotation:kGPUImageRotateLeft atIndex:0];		
+		[mediaFilter setInputRotation:kGPUImageRotateLeft atIndex:0];		
 	}	
 	
-	self.scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(intContainerPosX, intContainerPosY, intContainerWidth, intContainerHeight)]; 	
+	////////////////////////////////////
+	// CREATE SCROLL VIEW - ALLOWS PAN AND PINCH
+	////////////////////////////////////
+
+	self.scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(intPlayerPosX, intPlayerPosY, intPlayerWidth, intPlayerHeight)]; 	
 	self.scrollView.backgroundColor = [UIColor blackColor]; 
-	[self.scrollView addSubview:self.viewContainer];
+	[self.scrollView addSubview:self.mediaContainer];
 	[self.rootView addSubview:self.scrollView];
 	
-	NSError *error;
-	self.audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:self.localURL error:&error];	
-    self.audioPlayer.numberOfLoops = 0;	
-	[self.audioPlayer setEnableRate:YES];
-	self.audioPlayer.delegate  = self;	
- 
-	[movieFile startProcessing];    
-	[self.audioPlayer play];
+	////////////////////////////////////
+	// USE AUDIO PLAYER?
+	////////////////////////////////////
 
-	self.jsonResults = [ [NSMutableDictionary alloc]
-        initWithObjectsAndKeys :
-        nil, @"duration",
-        nil, @"currentTime",                             
-        nil
-        ];
+	if (intMediaType == 1) // 1 = video
+	{
+		self.audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:self.mediaLocalURL error:&error];	
+		self.audioPlayer.numberOfLoops = 0;	
+		[self.audioPlayer setEnableRate:YES];
+		self.audioPlayer.delegate  = self;	
+	}
 
-	NSTimer *playbackTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(showProgress:) userInfo:nil repeats:YES];
+	////////////////////////////////////
+	// START PROCESSING FRAMES OF MEDIA FILE
+	////////////////////////////////////
 
-	UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]  initWithTarget:self action:@selector(dismissKeyboard)];
-	[self.rootView addGestureRecognizer:tap];	
+	[mediaFile startProcessing];    
+
+	////////////////////////////////////
+	// PLAY AUDIO?
+	////////////////////////////////////
+	 
+	if (intMediaType == 1) // 1 = video
+	{
+		[self.audioPlayer play];
+	}
+
+	////////////////////////////////////
+	// GENERATE PROGRESS INFO USING TIMER
+	////////////////////////////////////
+
+	NSTimer *playbackTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(showProgress:) userInfo:nil repeats:YES];	
 }
+  
+- (void) pause:(CDVInvokedUrlCommand *)command {
+	if (mediaFile.stop == NO)
+	{
+		mediaFile.pause = YES;
+
+		if (self.mediaType == 1) // 1 = video
+		{
+			[self.audioPlayer pause];
+		}		
+	}		
+ }
+
+ - (void) play:(CDVInvokedUrlCommand *)command {
+	if (mediaFile.stop == NO)
+	{
+		mediaFile.pause = NO;
+		
+		if (self.mediaType == 1) // 1 = video
+		{
+			[self.audioPlayer play];
+		}		
+	}	
+ }
+
+- (void) stop:(CDVInvokedUrlCommand *)command {
+	if (mediaFile.stop == NO)
+	{
+		mediaFile.stop = YES;				
+		
+		if (self.mediaType == 1) // 1 = video
+		{
+			[self.audioPlayer stop];
+		}		
+	}  
+
+	[self.mediaContainer removeFromSuperview];
+ }
  
+ - (void) save:(CDVInvokedUrlCommand *)command { 
+	
+	////////////////////////////////////
+	// SET VARS
+	//////////////////////////////////// 
+	
+	NSDictionary *options = [command.arguments objectAtIndex: 0];
+  
+	int intMediaWidth = [[options objectForKey:@"mediaWidth"] integerValue];
+    int intMediaHeight = [[options objectForKey:@"mediaHeight"] integerValue];
+	int intAvgBitRate = [[options objectForKey:@"avgBitRate"] integerValue];
+
+	int intGifFramesPerSecond = [[options objectForKey:@"gifFramesPerSecond"] integerValue];
+	int intGifPlaybackSpeed = [[options objectForKey:@"gifPlaybackSpeed"] integerValue];
+	int intGifMaxDuration = [[options objectForKey:@"gifMaxDuration"] integerValue];
+
+	NSString * strMediaURL = [options objectForKey:@"mediaURL"];	
+	int intMediaType = [[options objectForKey:@"mediaType"] integerValue];
+
+	NSString * strMediaFileExtension;
+
+	UIImage * maskImage;
+
+	self.jsonProgress = [ [NSMutableDictionary alloc]
+        initWithObjectsAndKeys :
+        nil, @"progress",        
+        nil
+    ];
+
+	////////////////////////////////////
+	// CREATE RANDOM FILE NAME
+	//////////////////////////////////// 
+
+	int intFileNameLength = 15;
+	static NSString *letters = @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    NSMutableString *strRandomFileName = [NSMutableString stringWithCapacity: intFileNameLength];
+
+    for (int i=0; i<intFileNameLength; i++) {
+        [strRandomFileName appendFormat: @"%C", [letters characterAtIndex: arc4random() % [letters length]]];
+    }
+
+	////////////////////////////////////
+	// CREATE TEMP PATH
+	//////////////////////////////////// 
+
+	NSURL *tmpDirURL = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
+    NSURL *fileURL = [[tmpDirURL URLByAppendingPathComponent:strRandomFileName] URLByAppendingPathExtension:@"mov"];
+    //NSLog(@"fileURL: %@", [fileURL path]);		
+
+	////////////////////////////////////
+	// CLEAR THE SAVE FILTER
+	//////////////////////////////////// 
+
+	[saveFilter removeAllTargets];   
+
+	///////////////////////////////////////// 
+	// HAS MEDIA ALREADY BEEN SAVED TO DEVICE?
+	/////////////////////////////////////////
+
+	if (self.mediaLocalURL == nil)
+	{
+		NSLog(@"DOWNLOADING FILE...");
+
+		///////////////////////////////////////// 
+		// SET CALLBACK ID
+		/////////////////////////////////////////
+		
+		self.callbackId = command.callbackId;
+		
+		///////////////////////////////////////// 
+		// CREATE DEFAULT SAVE FILTER
+		/////////////////////////////////////////
+
+		saveFilter = [[GPUImageBrightnessFilter alloc] init];	
+		
+		////////////////////////////////////////
+		// SET MEDIA TYPE
+		/////////////////////////////////////////
+
+		self.mediaType = intMediaType;
+
+		////////////////////////////////////////
+		// SET MEDIA FILE EXTENSION
+		/////////////////////////////////////////
+
+		strMediaFileExtension = @"mp4";
+
+		//if (intMediaType == 1) // 1 = video
+		//{		
+			//strMediaFileExtension = @"mp4";
+		//}
+		//else if (intMediaType == 2) // 2 = GIF
+		//{
+			//strMediaFileExtension = @"gif";
+		//}
+		
+		///////////////////////////////////////// 
+		// DOWNLOAD MEDIA FILE TO DEVICE IN ORDER TO SAVE
+		/////////////////////////////////////////
+
+		NSURL* mediaRemoteURL = [NSURL URLWithString:strMediaURL];   			
+		self.mediaLocalURL = [self saveLocalFileFromRemoteUrl: mediaRemoteURL extension:strMediaFileExtension]; 		
+	}	 
+	
+	////////////////////////////////////
+	// CREATE SAVED FILE
+	//////////////////////////////////// 
+
+	saveFile = [[GPUImageMovie alloc] initWithURL:self.mediaLocalURL];		 
+    saveFile.playAtActualSpeed = NO;
+
+	////////////////////////////////////
+	// ADD FILTER TO SAVED FILE
+	//////////////////////////////////// 
+
+	[saveFile addTarget:saveFilter];  	
+
+	////////////////////////////////////
+	// ADD FILTER TO SAVED FILE
+	// http://www.sunsetlakesoftware.com/forum/audio-problems-when-filtering-movie-file
+	//////////////////////////////////// 
+
+	////////////////////////////////////
+	// CONFIGURE OUTPUT SETTINGS
+	////////////////////////////////////  
+	
+	NSMutableDictionary *settings = [[NSMutableDictionary alloc] init];
+    [settings setObject:AVVideoCodecH264 forKey:AVVideoCodecKey];	         
+    [settings setObject:[NSNumber numberWithInt:intMediaWidth] forKey:AVVideoWidthKey];
+    [settings setObject:[NSNumber numberWithInt:intMediaHeight] forKey:AVVideoHeightKey];
+
+	NSDictionary *videoCleanApertureSettings = [NSDictionary dictionaryWithObjectsAndKeys:
+    [NSNumber numberWithInt:intMediaWidth], AVVideoCleanApertureWidthKey,
+    [NSNumber numberWithInt:intMediaHeight], AVVideoCleanApertureHeightKey,
+    [NSNumber numberWithInt:0], AVVideoCleanApertureHorizontalOffsetKey,
+    [NSNumber numberWithInt:0], AVVideoCleanApertureVerticalOffsetKey,
+    nil]; 
+
+	NSDictionary *videoAspectRatioSettings = [NSDictionary dictionaryWithObjectsAndKeys:
+    [NSNumber numberWithInt:3], AVVideoPixelAspectRatioHorizontalSpacingKey,
+    [NSNumber numberWithInt:3], AVVideoPixelAspectRatioVerticalSpacingKey,   
+    nil]; 
+	  
+	NSMutableDictionary * compressionProperties = [[NSMutableDictionary alloc] init];
+    [compressionProperties setObject:videoCleanApertureSettings forKey:AVVideoCleanApertureKey];
+    [compressionProperties setObject:videoAspectRatioSettings forKey:AVVideoPixelAspectRatioKey];
+    [compressionProperties setObject:[NSNumber numberWithInt:intAvgBitRate] forKey:AVVideoAverageBitRateKey];
+    [compressionProperties setObject:[NSNumber numberWithInt: 16] forKey:AVVideoMaxKeyFrameIntervalKey];
+    [compressionProperties setObject:AVVideoProfileLevelH264Main31 forKey:AVVideoProfileLevelKey];
+	
+    [settings setObject:compressionProperties forKey:AVVideoCompressionPropertiesKey];
+
+	////////////////////////////////////
+	// CREATE A MOVIE WRITER
+	//////////////////////////////////// 
+
+	//movieWriter = [[GPUImageMovieWriter alloc] initWithMovieURL:fileURL size:CGSizeMake(375.0, 210.0)];
+	movieWriter = [[GPUImageMovieWriter alloc] initWithMovieURL:fileURL size:CGSizeMake(intMediaWidth, intMediaHeight) fileType:@"com.apple.quicktime-movie" outputSettings:settings];
+	movieWriter.shouldPassthroughAudio = YES;  
+
+	saveFile.audioEncodingTarget = movieWriter;
+    [saveFile enableSynchronizedEncodingUsingMovieWriter:movieWriter]; 
+
+	////////////////////////////////////
+	// ADD MASK?
+	//////////////////////////////////// 
+
+	if (self.mediaMaskEnabled == YES)
+	{
+		////////////////////////////////////
+		// CREATE A RECTANGLE THE SIZE OF THE MEDIA MASK
+		//////////////////////////////////// 
+
+		CGRect rect = [self.mediaMask bounds];
+
+		////////////////////////////////////
+		// CREATE A SINGLE IMAGE FROM THE LAYERS ON THE MASK
+		//////////////////////////////////// 
+
+		UIGraphicsBeginImageContext(rect.size);
+		CGContextRef context = UIGraphicsGetCurrentContext();
+		[self.mediaMask.layer renderInContext:context];   
+
+		UIImage *img = UIGraphicsGetImageFromCurrentImageContext(); 
+		UIGraphicsEndImageContext();
+
+		////////////////////////////////////
+		// CREATE A PNG IMAGE FROM THE MASK IMAGE
+		//////////////////////////////////// 
+
+		NSData *imageData = UIImagePNGRepresentation(img);
+		maskImage = [UIImage imageWithData:imageData];
+
+		////////////////////////////////////
+		// CREATE AN ALPHA BLEND FILTER FOR THE MASK
+		//////////////////////////////////// 
+
+		GPUImageAlphaBlendFilter *maskFilter = [[GPUImageAlphaBlendFilter alloc] init];    
+		maskFilter.mix = 1.0; 
+
+		////////////////////////////////////
+		// ADD THE MASK FILTER TO THE SAVE FILTER
+		//////////////////////////////////// 
+
+		overlay = [[GPUImagePicture alloc] initWithImage:maskImage smoothlyScaleOutput:NO];	 
+		[overlay processImage];
+		[overlay addTarget:maskFilter atTextureLocation:1];
+		[saveFilter addTarget:maskFilter]; 
+
+		[maskFilter addTarget:movieWriter];  
+	}	    
+	else
+	{		
+		GPUImageBrightnessFilter *dummyFilter = [[GPUImageBrightnessFilter alloc] init];	
+		
+		[saveFilter addTarget:dummyFilter]; 
+		[dummyFilter addTarget:movieWriter]; 	
+	}
+
+	////////////////////////////////////
+	// START PROCESSING
+	//////////////////////////////////// 
+	
+	[movieWriter startRecording];  
+    [saveFile startProcessing]; 	
+
+	////////////////////////////////////
+	// GENERATE PROGRESS INFO USING TIMER
+	////////////////////////////////////
+	
+	saveTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(saveFileProgress:) userInfo:nil repeats:YES];
+
+	//////////////////////////////////// 
+	// UPON COMPLETION, SAVE FILE
+	////////////////////////////////////
+
+	[movieWriter setCompletionBlock:^{ 
+
+        [saveFilter removeTarget:movieWriter]; 
+        [movieWriter finishRecording];  
+		  
+		NSNumber *fileSizeValue = nil;
+		NSError *fileSizeError = nil; 
+		NSString *strFileSize;
+
+		NSDictionary *attribs = [[NSFileManager defaultManager] attributesOfItemAtPath:fileURL.relativePath error:&fileSizeError];
+		if (attribs) {
+			strFileSize = [NSByteCountFormatter stringFromByteCount:[attribs fileSize] countStyle:NSByteCountFormatterCountStyleFile];			
+		}		
+
+		usleep(1000000);  // SLEEP FOR 1 SEC TO GIVE PHONE TIME TO SAVE  
+		
+		//NSLog(@"FILE URL: %@", fileURL.relativePath);   
+		 
+		//[self createGIFfromURL:fileURL withFrameCount:30 delayTime:.010 loopCount:0 completion:^(NSURL *GifURL) {
+		//[self createGIFfromURL:fileURL withFrameCount:85 delayTime:1.0 loopCount:0 completion:^(NSURL *GifURL) {
+		//[self createGIFfromURL:fileURL withFrameCount:170 delayTime:0.01 loopCount:0 completion:^(NSURL *GifURL) {
+		//[self createGIFfromURL:fileURL withFrameCount:340 delayTime:0.25 loopCount:0 completion:^(NSURL *GifURL) { 
+		
+		//[self createGIFfromURL:fileURL withFrameCount:340 delayTime:.10 loopCount:0 completion:^(NSURL *GifURL) {
+		//[self createGIFfromURL:fileURL withFrameCount:170 delayTime:0.25 loopCount:0 completion:^(NSURL *GifURL) { 
+		//[self createGIFfromURL:fileURL withFrameCount:340 delayTime:0.02 loopCount:0 completion:^(NSURL *GifURL) {  
+
+		//[self createGIFfromURL:fileURL withFrameCount:340 delayTime:0.25 loopCount:0 completion:^(NSURL *GifURL) {  
+		//[self createGIFfromURL:fileURL withFrameCount:340 delayTime:0.125 loopCount:0 completion:^(NSURL *GifURL) {  
+		
+		//[self createGIFfromURL:fileURL withFrameCount:170 delayTime:0.0625 loopCount:0 completion:^(NSURL *GifURL) {  
+		//[self createGIFfromURL:fileURL withFrameCount:170 delayTime:0.125 loopCount:0 completion:^(NSURL *GifURL) {     // 2 fps at 4x speed
+		//[self optimalGIFfromURL:fileURL loopCount:0 completion:^(NSURL *GifURL) { 
+
+		//[self createGIFfromURL:fileURL withFrameCount:45 delayTime:0.10 loopCount:0 completion:^(NSURL *GifURL) {     // 2 fps at 4x speed
+
+		//[self createGIFfromURL:fileURL framesPerSecond:5 playbackSpeed:4 loopCount:0 completion:^(NSURL *GifURL) {  // 5 fps playing back at 2x
+		//[self createGIFfromURL:fileURL framesPerSecond:10 playbackSpeed:2 loopCount:0 completion:^(NSURL *GifURL) {  // 5 fps playing back at 2x
+
+		if (intMediaType == 1) // 1 = video
+		{
+			//NSLog(@"Saving to photo album...");
+			if (UIVideoAtPathIsCompatibleWithSavedPhotosAlbum(fileURL.relativePath))
+			{	
+				UISaveVideoAtPathToSavedPhotosAlbum(fileURL.relativePath, nil, nil, nil);				
+				NSLog(@"Saved video file to path: %@, file size: %@", fileURL, strFileSize);
+			}
+			else
+			{
+				NSLog(@"Error!!!");
+			}		         
+		}
+
+		if (intMediaType == 2) // 2 = gif
+		{
+			[self createGIFfromURL:fileURL framesPerSecond:intGifFramesPerSecond playbackSpeed:intGifPlaybackSpeed maxDuration:intGifMaxDuration loopCount:0 completion:^(NSURL *GifURL) {  // loopCount = 0 means infinite loop
+
+				NSLog(@"Finished generating GIF: %@", GifURL); 
+			 
+				[[PHPhotoLibrary sharedPhotoLibrary] performChanges:^{
+					PHAssetChangeRequest *assetRequest = [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:GifURL];				
+				} completionHandler:^(BOOL success, NSError *error) { 
+					if (success)
+					{
+						//NSLog(@"SAVED GIF!!!");
+						NSError *gifFileSizeError = nil; 
+						NSString *strGifFileSize;
+						NSDictionary *gifAttribs = [[NSFileManager defaultManager] attributesOfItemAtPath:GifURL.relativePath error:&gifFileSizeError];
+						if (gifAttribs) {
+							strGifFileSize = [NSByteCountFormatter stringFromByteCount:[gifAttribs fileSize] countStyle:NSByteCountFormatterCountStyleFile];			
+						}		
+
+						NSLog(@"Saved gif file to path: %@, file size: %@", GifURL, strGifFileSize);
+					}
+					else
+					{
+						NSLog(@"%@", error);
+					}
+				}];				
+			}];
+		}		
+    }];
+}
+
+ - (void) addSticker:(CDVInvokedUrlCommand *)command {
+	
+		///////////////////////////////////////// 
+		// SET VARS
+		/////////////////////////////////////////
+
+		NSError* error = nil;
+
+		NSDictionary *options = [command.arguments objectAtIndex: 0];
+  
+		NSString * strStickerURL = [options objectForKey:@"stickerURL"];
+
+		int intStickerID = [[options objectForKey:@"stickerID"] integerValue];
+		int intStickerWidth = [[options objectForKey:@"stickerWidth"] integerValue];
+		int intStickerHeight = [[options objectForKey:@"stickerHeight"] integerValue];
+		int intStickerPosX = [[options objectForKey:@"stickerPosX"] integerValue];
+		int intStickerPosY = [[options objectForKey:@"stickerPosY"] integerValue];
+
+		self.currentTag = intStickerID;
+
+		///////////////////////////////////////// 
+		// GET STICKER AS NSDATA
+		/////////////////////////////////////////
+		
+		NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:strStickerURL] options:NSDataReadingUncached error:&error];
+		if (error) {
+			NSLog(@"%@", [error localizedDescription]);			
+		} else {			
+			NSLog(@"Sticker of size %i has loaded successfully!", data.length);			
+		}
+
+		///////////////////////////////////////// 
+		// CONVERT NSDATA TO UIIMAGE
+		/////////////////////////////////////////
+
+		UIImage *stickerImage = [UIImage imageWithData:data];
+		
+		///////////////////////////////////////// 
+		// ADD UIIMAGE TO VIEW
+		/////////////////////////////////////////  
+
+		UIImageView *stickerView = [[UIImageView alloc] initWithFrame:CGRectMake(intStickerPosX, intStickerPosY, intStickerWidth, intStickerHeight)]; 
+		[stickerView setImage:stickerImage]; 
+		stickerView.tag = intStickerID;
+
+		///////////////////////////////////////// 
+		// ADD PAN GESTURES TO VIEW
+		/////////////////////////////////////////
+
+		[self addLimitedPanGesturesToView:stickerView];
+
+		///////////////////////////////////////// 
+		// ADD LONG PRESS GESTURE (FOR DELETING)
+		/////////////////////////////////////////
+		
+		UILongPressGestureRecognizer *gestureRecognizer = [[UILongPressGestureRecognizer alloc] init];
+		[gestureRecognizer addTarget:self action:@selector(imgLongPressed:)];
+		gestureRecognizer.delegate = self;
+		[stickerView addGestureRecognizer: gestureRecognizer];
+		
+		///////////////////////////////////////// 
+		// ADD VIEW TO MASK
+		/////////////////////////////////////////
+
+		[self.mediaMask addSubview:stickerView];
+		self.mediaMaskEnabled = YES;
+ }
+
+  - (void) addLabel:(CDVInvokedUrlCommand *)command {
+	
+		///////////////////////////////////////// 
+		// SET VARS
+		/////////////////////////////////////////
+		
+		NSDictionary *options = [command.arguments objectAtIndex: 0];  
+  
+		int intLabelID = [[options objectForKey:@"labelID"] integerValue]; 
+
+		int intLabelWidth = [[options objectForKey:@"labelWidth"] integerValue];
+		int intLabelHeight = [[options objectForKey:@"labelHeight"] integerValue];
+		int intLabelPosX = [[options objectForKey:@"labelPosX"] integerValue];
+		int intLabelPosY = [[options objectForKey:@"labelPosY"] integerValue];
+
+		//self.currentTextFieldTag = intLabelID;
+		self.currentTag = intLabelID;
+
+		///////////////////////////////////////// 
+		// CREATE TEXT FIELD
+		/////////////////////////////////////////
+
+		UITextField *textField = [[UITextField alloc] initWithFrame:CGRectMake(intLabelPosX, intLabelPosY, intLabelWidth, intLabelHeight)];		
+		textField.borderStyle = UITextBorderStyleNone; 
+		textField.textAlignment = UITextAlignmentCenter;
+		textField.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
+		[textField setBackgroundColor:[UIColor clearColor]];
+		[textField setTextColor:[UIColor whiteColor]];
+		textField.tintColor = [UIColor whiteColor];
+		textField.tag = intLabelID;
+		textField.delegate = self;
+		
+		///////////////////////////////////////// 
+		// ADD PAN GESTURES TO VIEW 
+		/////////////////////////////////////////
+
+		[self addLimitedPanGesturesToView:textField];
+
+		///////////////////////////////////////// 
+		// ADD LONG PRESS GESTURE (FOR DELETING)
+		/////////////////////////////////////////
+
+		UILongPressGestureRecognizer *pressGestureRecognizer = [[UILongPressGestureRecognizer alloc] init];
+		[pressGestureRecognizer addTarget:self action:@selector(labelLongPressed:)];
+		pressGestureRecognizer.delegate = self;
+		[textField addGestureRecognizer: pressGestureRecognizer];
+		
+		///////////////////////////////////////// 
+		// ADD TAP GESTURE (FOR SELECTING)
+		/////////////////////////////////////////
+
+		//UITapGestureRecognizer *tapGestureRecognizer = [[UITapGestureRecognizer alloc] init];
+		//[tapGestureRecognizer addTarget:self action:@selector(labelTapped:)];
+		//tapGestureRecognizer.delegate = self;
+		//[textField addGestureRecognizer: tapGestureRecognizer];
+
+		///////////////////////////////////////// 
+		// ADD VIEW TO MASK
+		/////////////////////////////////////////
+
+		[self.mediaMask addSubview:textField];
+		self.mediaMaskEnabled = YES;
+
+		///////////////////////////////////////// 
+		// AUTOFOCUS ON TEXT FIELD
+		/////////////////////////////////////////
+
+		UIResponder* nextResponder = [textField.superview viewWithTag:(textField.tag)];
+        if (nextResponder) {
+            [nextResponder becomeFirstResponder];
+        }		 		
+ }
+
+ - (void) updateLabel:(CDVInvokedUrlCommand *)command { 
+ 
+		///////////////////////////////////////// 
+		// SET VARS
+		/////////////////////////////////////////		
+
+		NSDictionary *options = [command.arguments objectAtIndex: 0];
+  
+		int intLabelSize = [[options objectForKey:@"labelSize"] integerValue];
+		NSString *strLabelColor = [options objectForKey:@"labelColor"];
+
+		//int intLabelID = self.currentTextFieldTag;
+		int intLabelID = self.currentTag;
+
+		/////////////////////////////////////////  
+		// GET REFERENCE TO TEXT FIELD
+		/////////////////////////////////////////
+
+		UITextField * textField = (UITextField*)[self.mediaMask viewWithTag:intLabelID];
+
+		///////////////////////////////////////// 
+		// SET COLOR
+		/////////////////////////////////////////
+
+		UIColor *color = [self getUIColorObjectFromHexString:strLabelColor alpha:1.0];
+		[textField setTextColor:color];
+
+		///////////////////////////////////////// 
+		// SET FONT SIZE
+		/////////////////////////////////////////
+
+		[textField setFont:[UIFont boldSystemFontOfSize:intLabelSize]];
+
+		///////////////////////////////////////// 
+		// RESIZE TEXT FIELD
+		/////////////////////////////////////////
+
+		[self resizeTextField: textField];		
+ }
+
+ - (void) updateSticker:(CDVInvokedUrlCommand *)command {
+
+		///////////////////////////////////////// 
+		// SET VARS
+		/////////////////////////////////////////	
+
+		NSDictionary *options = [command.arguments objectAtIndex: 0]; 
+  
+		//int intStickerID = [[options objectForKey:@"stickerID"] integerValue];
+		int intStickerSize = [[options objectForKey:@"stickerSize"] integerValue];
+		NSString *strStickerColor = [options objectForKey:@"stickerColor"];
+
+		int intStickerID = self.currentTag;
+
+		/////////////////////////////////////////  
+		// GET REFERENCE TO TEXT FIELD
+		/////////////////////////////////////////
+
+		UIImageView * imageView = (UIImageView*)[self.mediaMask viewWithTag:intStickerID];
+
+		///////////////////////////////////////// 
+		// SET COLOR
+		/////////////////////////////////////////
+
+		UIColor *color = [self getUIColorObjectFromHexString:strStickerColor alpha:1.0];				
+		imageView.backgroundColor = color;
+
+		///////////////////////////////////////// 
+		// SET SIZE
+		/////////////////////////////////////////
+
+		imageView.contentMode = UIViewContentModeScaleToFill;
+
+		CGRect frameRect = imageView.frame;
+		frameRect.size.height = intStickerSize + 20; // <-- Specify the height you want here.
+		frameRect.size.width = intStickerSize + 20; // <-- Specify the height you want here.
+		imageView.frame = frameRect;		
+ }
+
+////////////////////////////////////
+// UTILITY METHODS
+////////////////////////////////////
+
  -(UIImage *)changeWhiteColorTransparent: (UIImage *)image
 {
     CGImageRef rawImageRef = image.CGImage;
 
     const CGFloat colorMasking[6] = {228.0, 255.0, 228.0, 255.0, 228.0, 255.0};
-	//const CGFloat colorMasking[6] = {0.8, 1.0, 0.8, 1.0, 0.8, 1.0}; 
-	//const CGFloat colorMasking[6] = {255, 255, 255, 255, 255, 255};
-
+	
     UIGraphicsBeginImageContext(image.size);
     CGImageRef maskedImageRef=CGImageCreateWithMaskingColors(rawImageRef, colorMasking);
-    //{
+    {
         //if in iphone
         CGContextTranslateCTM(UIGraphicsGetCurrentContext(), 0.0, image.size.height);
         CGContextScaleCTM(UIGraphicsGetCurrentContext(), 1.0, -1.0);
-    //}
+    }
 
     CGContextDrawImage(UIGraphicsGetCurrentContext(), CGRectMake(0, 0, image.size.width, image.size.height), maskedImageRef);
     UIImage *result = UIGraphicsGetImageFromCurrentImageContext();
     CGImageRelease(maskedImageRef);
     UIGraphicsEndImageContext();
+
     return result;
 }
 
 -(void)dismissKeyboard {
-       //[aTextField resignFirstResponder];
-	   //[self resizeTextField: textField];
+       
+	//UITextField* textField = [self.rootView viewWithTag:(self.currentTextFieldTag)];
+	UITextField* textField = [self.rootView viewWithTag:(self.currentTag)];
 
-	    UITextField* textField = [self.rootView viewWithTag:(self.currentTextFieldTag)];
-		[self resizeTextField: textField];
-
-	    [self.rootView endEditing:YES];
+	[self resizeTextField: textField];
+	[self.rootView endEditing:YES];
 }
 
 - (NSURL*)saveLocalFileFromRemoteUrl:(NSURL*)url extension:(NSString *)extension
@@ -275,11 +1070,9 @@
        // no tmp dir for the app (need to create one)
     }
 
-    NSURL *tmpDirURL = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
-    //NSURL *fileURL = [[tmpDirURL URLByAppendingPathComponent:@"temp"] URLByAppendingPathExtension:@"mp4"];
-	NSURL *fileURL = [[tmpDirURL URLByAppendingPathComponent:@"temp"] URLByAppendingPathExtension:extension];
-    NSLog(@"fileURL: %@", [fileURL path]);
-
+    NSURL *tmpDirURL = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];    
+	NSURL *fileURL = [[tmpDirURL URLByAppendingPathComponent:@"mediaFile"] URLByAppendingPathExtension:extension];
+	
 	NSData *urlData = [NSData dataWithContentsOfURL:url];
     [urlData writeToURL:fileURL options:NSAtomicWrite error:nil];
 
@@ -287,23 +1080,17 @@
 }
 
 -(void)showProgress:(NSTimer*)timer
-{    
-	//NSMutableDictionary *jsonResults = [[NSMutableDictionary alloc] init];
-	
-	//self.pluginResult = nil;
+{   
+	int intCurrentTime = (mediaFile.currentTime + 0.5);
 
-	int intCurrentTime = (movieFile.currentTime + 0.5);
-
-	if (intCurrentTime > movieFile.currentTimeInSecs)
-	{
-		//float audioDuration = self.audioPlayer.duration;
-		
+	if (intCurrentTime > mediaFile.currentTimeInSecs)
+	{		
 		///////////////////////////////
 		// ADJUST AUDIO RATE!!!!!
 		///////////////////////////////
 
 		float audioRemaining = self.audioPlayer.duration - self.audioPlayer.currentTime;
-		float videoRemaining = self.audioPlayer.duration - movieFile.currentTime;
+		float videoRemaining = self.audioPlayer.duration - mediaFile.currentTime;
 
 		float audioDiff = videoRemaining - audioRemaining;
 
@@ -329,225 +1116,27 @@
 		{
 			[self.audioPlayer setRate:1.50f];
 		}
-		 
-		//[self.audioPlayer setRate:audioDelay];
-
-		movieFile.currentTimeInSecs = intCurrentTime;
-		//float roundedup = ceil(otherfloat);
-		//NSLog(@"Time : %d secs, %f %f %f", movieFile.currentTimeInSecs, audioRemaining, videoRemaining, audioDiff);	
-
-		//self.jsonResults = [ [NSDictionary alloc] initWithObjectsAndKeys :  @"true", @"success", nil];
-	
-		self.jsonResults[@"duration"] = [[NSNumber numberWithFloat:movieFile.duration] stringValue];
-		self.jsonResults[@"currentTime"] = [[NSNumber numberWithFloat:movieFile.currentTime] stringValue];	
+		
+		mediaFile.currentTimeInSecs = intCurrentTime;
+		
+		self.jsonResults[@"duration"] = [[NSNumber numberWithFloat:mediaFile.duration] stringValue];
+		self.jsonResults[@"currentTime"] = [[NSNumber numberWithFloat:mediaFile.currentTime] stringValue];	
 
 		self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
 		[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
 		[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
-	}
-	
+	}	
 }
 
 -(void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
-{
-    //NSLog(@"%d",flag);
+{    
 	NSLog(@"FINISHED AUDIO!!!");    
 }
-
-
-- (void) pauseVideo:(CDVInvokedUrlCommand *)command {
-	if (movieFile.stop == NO)
-	{
-		NSLog(@"PAUSE VIDEO!!!");    
-		[self.audioPlayer pause];
-		movieFile.pause = YES;
-	}		
- }
-
- - (void) playVideo:(CDVInvokedUrlCommand *)command {
-	if (movieFile.stop == NO)
-	{
-		NSLog(@"PLAY VIDEO!!!");    
-		[self.audioPlayer play];
-		movieFile.pause = NO;
-	}	
- }
-- (void) stopVideo:(CDVInvokedUrlCommand *)command {
-	if (movieFile.stop == NO)
-	{
-		NSLog(@"STOP VIDEO!!!");    
-		[self.audioPlayer stop];
-		movieFile.stop = YES;				
-	}  
-
-	[self.viewContainer removeFromSuperview];
- }
   
- - (void) saveVideo:(CDVInvokedUrlCommand *)command {
-	//[self captureView];
-
-	self.maskView.opaque = NO;
-    CGRect rect = [self.maskView bounds];
-
-    UIGraphicsBeginImageContext(rect.size);
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    [self.maskView.layer renderInContext:context];   
-
-    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-
-	NSData *imageData = UIImagePNGRepresentation(img);
-	UIImage * pngImage = [UIImage imageWithData:imageData];
-
-	int len = 10;
-
-	static NSString *letters = @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    NSMutableString *strRandomFileName = [NSMutableString stringWithCapacity: len];
-    for (int i=0; i<len; i++) {
-        [strRandomFileName appendFormat: @"%C", [letters characterAtIndex: arc4random() % [letters length]]];
-    }
-
-	NSURL *tmpDirURL = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
-    //NSURL *fileURL = [[tmpDirURL URLByAppendingPathComponent:@"temp1234"] URLByAppendingPathExtension:@"mov"];
-	NSURL *fileURL = [[tmpDirURL URLByAppendingPathComponent:strRandomFileName] URLByAppendingPathExtension:@"mov"];
-    NSLog(@"fileURL: %@", [fileURL path]);
-		
-	//GPUImageMovie * videoFile = [[GPUImageMovie alloc] initWithURL:self.localURL];		 
-	videoFile = [[GPUImageMovie alloc] initWithURL:self.localURL];		 
-    videoFile.playAtActualSpeed = NO;
-
-	//GPUImageOutput<GPUImageInput> *currentFilter = [[GPUImagePixellateFilter alloc] init];      	
-	//[(GPUImagePixellateFilter *)currentFilter setFractionalWidthOfAPixel:0.0125];			      
-
-	[saveFilter removeAllTargets];    
-
-	[videoFile addTarget:saveFilter];  	
-
-	//GPUImageOutput<GPUImageInput> *currentFilter = saveFilter;       
-	//[videoFile addTarget:saveFilter];  	    
-	 
-	/////////////////////////////  
-	//GPUImagePicture *overlay = [[GPUImagePicture alloc] initWithImage:pngImage smoothlyScaleOutput:YES];	 
-	//overlay = [[GPUImagePicture alloc] initWithImage:pngImage smoothlyScaleOutput:YES];	 
-	//[overlay processImage];    
-	  
-    //GPUImageBrightnessFilter *testFilter = [[GPUImageBrightnessFilter alloc] init];		
-	//[overlay addTarget:testFilter];
-	//[saveFilter addTarget:saveFilter];   
-
-	//GPUImageAlphaBlendFilter *blendFilter = [[GPUImageAlphaBlendFilter alloc] init];
-	//overlayFilter = [[GPUImageOverlayBlendFilter alloc] init]; 	
-	//[overlay addTarget:overlayFilter];
-	//[overlay processImage];     
-
-	//[videoFile addTarget:overlayFilter];  	
-	 //blendFilter.mix = 1.0;      
-
-	//[videoFile addTarget:saveFilter];  	   
-
-	//[blendFilter useNextFrameForImageCapture];  
-	//[saveFilter addTarget:blendFilter];
-	//[overlay addTarget:blendFilter];  
-
-	//[videoFile addTarget:saveFilter];  	    
-
-	//GPUImageAlphaBlendFilter *blendFilter = [[GPUImageAlphaBlendFilter alloc] init];
-
-	//blendFilter = [[GPUImageAlphaBlendFilter alloc] init];
-	//[saveFilter addTarget:blendFilter];  
-	//[overlay addTarget:blendFilter];    
-
-	//[blendFilter useNextFrameForImageCapture]; 
-	//[videoFile addTarget:saveFilter];  	 
-
-	//[overlay addTarget:saveFilter];  
-
-	///////////////////////////// 
-
-	// http://www.sunsetlakesoftware.com/forum/audio-problems-when-filtering-movie-file
-	GPUImageAlphaBlendFilter *maskFilter = [[GPUImageAlphaBlendFilter alloc] init];    
-    maskFilter.mix = 1.0;
-
-	overlay = [[GPUImagePicture alloc] initWithImage:pngImage smoothlyScaleOutput:NO];	 
-	[overlay processImage];
-    [overlay addTarget:maskFilter atTextureLocation:1];
-    [saveFilter addTarget:maskFilter]; 
-
-	/////////////////////////////
-
-	//GPUImageMovieWriter *movieWriter = [[GPUImageMovieWriter alloc] initWithMovieURL:fileURL size:CGSizeMake(375.0, 210.0)];
-	movieWriter = [[GPUImageMovieWriter alloc] initWithMovieURL:fileURL size:CGSizeMake(375.0, 210.0)];
-	movieWriter.shouldPassthroughAudio = YES;  
-    videoFile.audioEncodingTarget = movieWriter;
-    [videoFile enableSynchronizedEncodingUsingMovieWriter:movieWriter]; 
-
-	//[saveFilter addTarget:movieWriter];  
-	//[blendFilter addTarget:movieWriter];  
-	[maskFilter addTarget:movieWriter];  
-
-	//[movieWriter addTarget:overlay]; 
-	 
-	//GPUImageAlphaBlendFilter *overlayFilter = [[GPUImageAlphaBlendFilter alloc] init];
-
-	//[saveFilter addTarget:overlayFilter atTextureLocation:0];
-	//[overlay addTarget:overlayFilter atTextureLocation:1];
-
-	//[overlayFilter useNextFrameForImageCapture]; 
-	
-
-	//[overlay useNextFrameForImageCapture];		
-	//[overlay processImage];
-
-	//GPUImageAlphaBlendFilter *overlayFilter = [[GPUImageAlphaBlendFilter alloc] init];
-	//[saveFilter addTarget:overlayFilter atTextureLocation:0];
-	//[overlay addTarget:overlayFilter atTextureLocation:1];
-	//[overlayFilter prepareForImageCapture];
-	/////////////////////////////
-
-	[movieWriter startRecording];  
-    [videoFile startProcessing]; 	
-
-	self.jsonProgress = [ [NSMutableDictionary alloc]
-        initWithObjectsAndKeys :
-        nil, @"progress",        
-        nil
-        ];
-
-	NSLog(@"startProcessing...");
-	saveTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(saveProgress:) userInfo:nil repeats:YES];
-
-	[movieWriter setCompletionBlock:^{
-        [saveFilter removeTarget:movieWriter];
-        [movieWriter finishRecording];
-		  
-		NSNumber *fileSizeValue = nil;
-		NSError *fileSizeError = nil;
-		[fileURL getResourceValue:&fileSizeValue forKey:NSURLFileSizeKey error:&fileSizeError];
-		if (fileSizeValue) {
-			NSLog(@"value for %@ is %@", fileURL, fileSizeValue);
-		}
-		else {
-			NSLog(@"error getting size for url %@ error was %@", fileURL, fileSizeError);
-		}
-
-		usleep(1000000);  // SLEEP FOR 1 SEC TO GIVE PHONE TIME TO SAVE
-
-		NSLog(@"Trying to save...");
-		if (UIVideoAtPathIsCompatibleWithSavedPhotosAlbum(fileURL.relativePath))
-		{	
-			UISaveVideoAtPathToSavedPhotosAlbum(fileURL.relativePath, nil, nil, nil);
-			NSLog(@"Saved!!!");
-		}
-		else
-		{
-			NSLog(@"Error!!!");
-		}		         
-    }];
-}
-
--(void)saveProgress:(NSTimer*)timer
+-(void)saveFileProgress:(NSTimer*)timer
 {    
-	float fltProgress = videoFile.progress; 	
+	float fltProgress = saveFile.progress; 	
 	//NSLog(@"Progress: %f", fltProgress);	
 
 	self.jsonProgress[@"progress"] = [[NSNumber numberWithFloat:fltProgress] stringValue];
@@ -556,135 +1145,23 @@
 	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
 	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
 
-	if (fltProgress >= .95)
+	//if (fltProgress >= .95)
+	if (fltProgress >= 1.0)
 	{
 		[saveTimer invalidate];
 		saveTimer = nil;
 	}
 }
 
- - (void) addSticker:(CDVInvokedUrlCommand *)command {
-	
-		NSDictionary *options = [command.arguments objectAtIndex: 0];
-  
-		int intStickerID = [[options objectForKey:@"stickerID"] integerValue];
-
-		NSError* error = nil;
-		NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"http://192.168.1.2/1f600.png"] options:NSDataReadingUncached error:&error];
-		if (error) {
-			NSLog(@"%@", [error localizedDescription]);			
-		} else {
-			NSLog(@"Data has loaded successfully.");
-			NSLog(@"length: %i", data.length); 
-		}
-
-		UIImage *inputImage = [UIImage imageWithData:data];
-		
-		//UIView *v = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
-		UIImageView *v = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 50, 50)]; 
-		[v setImage:inputImage];
-		v.tag = intStickerID;
-		[self addLimitedPanGesturesToView:v];
-
-		UILongPressGestureRecognizer *gestureRecognizer = [[UILongPressGestureRecognizer alloc] init];
-		[gestureRecognizer addTarget:self action:@selector(imgLongPressed:)];
-		gestureRecognizer.delegate = self;
-		[v addGestureRecognizer: gestureRecognizer];
-		 
-		//[self.videoView addSubview:v];  
-		[self.maskView addSubview:v];
- }
-
-  - (void) addLabel:(CDVInvokedUrlCommand *)command {
-	
-		NSLog(@"ADD LABEL!");
-
-		NSDictionary *options = [command.arguments objectAtIndex: 0];  
-  
-		int intLabelID = [[options objectForKey:@"labelID"] integerValue]; 
-
-		self.currentTextFieldTag = intLabelID;
-
-		UITextField *textField = [[UITextField alloc] initWithFrame:CGRectMake(0, 90, 375, 30)];		
-		textField.borderStyle = UITextBorderStyleNone; 
-		textField.textAlignment = UITextAlignmentCenter;
-		textField.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
-		[textField setBackgroundColor:[UIColor clearColor]];
-		//[textField setBackgroundColor:[UIColor redColor]];
-		//[textField setBackgroundColor:[UIColor greenColor]];
-		[textField setTextColor:[UIColor whiteColor]];
-		textField.tintColor = [UIColor whiteColor];
-		textField.tag = intLabelID;
-		textField.delegate = self;
-		//textField.text = @"HELLO WORLD"; 
-
-		[self addLimitedPanGesturesToView:textField];
-
-		//[self.videoView addSubview:textField];
-		[self.maskView addSubview:textField];
-
-		UIResponder* nextResponder = [textField.superview viewWithTag:(textField.tag)];
-        if (nextResponder) {
-            [nextResponder becomeFirstResponder];
-        }		 
-		
- }
-
- - (void) updateLabel:(CDVInvokedUrlCommand *)command {
-
-		NSDictionary *options = [command.arguments objectAtIndex: 0];
-  
-		int intLabelID = [[options objectForKey:@"labelID"] integerValue];
-		int intLabelSize = [[options objectForKey:@"labelSize"] integerValue];
-		NSString *strLabelColor = [options objectForKey:@"labelColor"];
-
-		self.currentTextFieldTag = intLabelID;
-
-		UIColor *color = [self getUIColorObjectFromHexString:strLabelColor alpha:1.0];
-		
-		UITextField * textField = (UITextField*)[self.videoView viewWithTag:intLabelID];
-		[textField setTextColor:color];
-
-		[textField setFont:[UIFont boldSystemFontOfSize:intLabelSize]];
-
-		//CGRect frameRect = textField.frame;
-		//frameRect.size.height = intLabelSize + 20; // <-- Specify the height you want here.
-		//textField.frame = frameRect;
-
-		[self resizeTextField: textField];		
- }
-
- - (void) updateSticker:(CDVInvokedUrlCommand *)command {
-
-		NSDictionary *options = [command.arguments objectAtIndex: 0];
-  
-		int intStickerID = [[options objectForKey:@"stickerID"] integerValue];
-		int intStickerSize = [[options objectForKey:@"stickerSize"] integerValue];
-		NSString *strStickerColor = [options objectForKey:@"stickerColor"];
-
-		UIColor *color = [self getUIColorObjectFromHexString:strStickerColor alpha:1.0];
-		
-		UIImageView * imageView = (UIImageView*)[self.videoView viewWithTag:intStickerID];
-		imageView.backgroundColor = color;
-		imageView.contentMode = UIViewContentModeScaleToFill;
-
-		CGRect frameRect = imageView.frame;
-		frameRect.size.height = intStickerSize + 20; // <-- Specify the height you want here.
-		frameRect.size.width = intStickerSize + 20; // <-- Specify the height you want here.
-		imageView.frame = frameRect;		
- }
-
  - (BOOL)textFieldDidBeginEditing:(UITextField *)textField {
-		//NSLog(@"XXXXXXXXXXX");
-
-		//CGFloat fixedWidth = textField.frame.size.width;
-		//CGSize newSize = [textField sizeThatFits:CGSizeMake(fixedWidth, MAXFLOAT)];
+		
 		CGRect newFrame = textField.frame;
-		//newFrame.origin.x = result1.origin.x;
 		newFrame.size = CGSizeMake(375, newFrame.size.height);
-		//newFrame.size = CGSizeMake(fmaxf(newSize.width, fixedWidth), newSize.height);
 		textField.frame = newFrame;
-		//textField.textAlignment = NSTextAlignmentLeft;
+		
+		self.currentTag = textField.tag;
+		//self.currentTextFieldTag = textField.tag;
+		//NSLog(@"tag: %i", self.currentTextFieldTag);
  }
 
  - (BOOL)textFieldShouldReturn:(UITextField *)textField {
@@ -719,14 +1196,14 @@
 	textField.frame = newFrame;
 }
 
-- (UIImage *)captureView { 
+- (UIImage *)captureView_OLD { 
     
-	self.maskView.opaque = NO;
-    CGRect rect = [self.maskView bounds];
+	self.mediaMask.opaque = NO;
+    CGRect rect = [self.mediaMask bounds];
 
     UIGraphicsBeginImageContext(rect.size);
     CGContextRef context = UIGraphicsGetCurrentContext();
-    [self.maskView.layer renderInContext:context];   
+    [self.mediaMask.layer renderInContext:context];   
 
     UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
@@ -737,252 +1214,462 @@
 	//UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil);
 	UIImageWriteToSavedPhotosAlbum(pngImage, nil, nil, nil);
     return img;
-
 }
+
  - (void) imgLongPressed:(UILongPressGestureRecognizer*)sender
 {
     UIImageView *view_ =(UIImageView*) sender.view;
-
 	
     CGPoint point = [sender locationInView:view_.superview];
 
     if (sender.state == UIGestureRecognizerStateBegan)
     {
+		//self.currentStickerTag = view_.tag; 
+		self.currentTag = view_.tag; 
 		NSLog(@"tag: %i", view_.tag);
     }
     else if (sender.state == UIGestureRecognizerStateChanged)
     {
-
     }
     else if (sender.state == UIGestureRecognizerStateEnded)
-    {
-		 
+    {		 
     }
 }
 
-  - (void) changeFrame:(CDVInvokedUrlCommand *)command {
+- (void) labelLongPressed:(UILongPressGestureRecognizer*)sender
+{
+    UITextField *view_ =(UITextField*) sender.view;
+	
+    if (sender.state == UIGestureRecognizerStateBegan)
+    {
+		self.currentTag = view_.tag;
+		//self.currentTextFieldTag = view_.tag;
+		NSLog(@"tag: %i", view_.tag);
+    }    
+}
 
-		NSDictionary *options = [command.arguments objectAtIndex: 0];
-  
-		//NSLog(@"XXXXXXXXX");
-		NSString *const kGPUImageColorDodgeBlendFragmentShaderString = SHADER_STRING
-		(	
-			 precision mediump float;
- 
-			 varying highp vec2 textureCoordinate;
-			 varying highp vec2 textureCoordinate2;
- 
-			 uniform sampler2D inputImageTexture;
-			 uniform sampler2D inputImageTexture2; 
- 
-			 void main() 
-			 { 
-				vec4 shape = texture2D(inputImageTexture, textureCoordinate);
-				vec4 theme = texture2D(inputImageTexture2, textureCoordinate2);
+- (void) changeFrame:(CDVInvokedUrlCommand *)command {
 
-				gl_FragColor = shape;		
+	///////////////////////////////////////// 
+	// SET VARS
+	/////////////////////////////////////////	
+
+	NSDictionary *options = [command.arguments objectAtIndex: 0];
+  	NSError* error = nil;
+
+	NSString * strFrameShapeURL = [options objectForKey:@"frameShapeURL"];
+	NSString * strFrameThemeURL = [options objectForKey:@"frameThemeURL"];
+	int intMediaWidth = [[options objectForKey:@"mediaWidth"] integerValue];
+    int intMediaHeight = [[options objectForKey:@"mediaHeight"] integerValue];
+
+	////////////////////////////////////
+	// CREATE CUSTOM SHADER STRING
+	////////////////////////////////////
+
+	NSString *const kShaderString = SHADER_STRING
+	(	
+		precision mediump float;
+ 
+		varying highp vec2 textureCoordinate;
+		varying highp vec2 textureCoordinate2;
+ 
+		uniform sampler2D inputImageTexture;
+		uniform sampler2D inputImageTexture2; 
+ 
+		void main() 
+		{ 
+		vec4 shape = texture2D(inputImageTexture, textureCoordinate);
+		vec4 theme = texture2D(inputImageTexture2, textureCoordinate2);
+
+		gl_FragColor = shape;		
 		
-				if (shape.x <= 0.2) 
-				{ 					
-					gl_FragColor = theme; 
-				}
-				else if (shape.x >= 0.8) 
-				{
-					gl_FragColor = vec4(0.0, 0.0, 0.0, 0.5);		
-				}   
-			 }
-		);  
-
-		NSError* error = nil;
-		NSData* dataShape = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"http://192.168.1.2/shape_1.png"] options:NSDataReadingUncached error:&error];
-		if (error) {
-			NSLog(@"%@", [error localizedDescription]);			
-		} else {
-			NSLog(@"Data has loaded successfully.");
-			NSLog(@"length: %i", dataShape.length); 
+		if (shape.a <= 0.2) 
+		{ 					
+			gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
 		}
-
-		UIImage *shapeImage = [UIImage imageWithData:dataShape];
-
-		NSData* dataTheme = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"http://192.168.1.2/theme_1.png"] options:NSDataReadingUncached error:&error];
-		if (error) {
-			NSLog(@"%@", [error localizedDescription]);			
-		} else {
-			NSLog(@"Data has loaded successfully.");
-			NSLog(@"length: %i", dataShape.length); 
+		else if (shape.x <= 0.2) 
+		{ 					
+			gl_FragColor = theme; 
 		}
+		else if (shape.x >= 0.8) 
+		{
+			gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);		
+		}   
+		}
+	);  
 
-		UIImage *themeImage = [UIImage imageWithData:dataTheme]; 
+	////////////////////////////////////
+	// CREATE A TWO INPUT FILTER USING THE CUSTOM SHADER STRING
+	////////////////////////////////////
 
-		GPUImagePicture *shapePicture = [[GPUImagePicture alloc] initWithImage:shapeImage smoothlyScaleOutput:YES];
-		GPUImagePicture *themePicture = [[GPUImagePicture alloc] initWithImage:themeImage smoothlyScaleOutput:YES];
+	GPUImageTwoInputFilter * frameFilter = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kShaderString];
+
+	////////////////////////////////////
+	// GET SHAPE FILE FROM URL as NSDATA
+	////////////////////////////////////
+		
+	NSData* dataShape = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameShapeURL] options:NSDataReadingUncached error:&error];
+	if (error) {
+		NSLog(@"%@", [error localizedDescription]);			
+	} else {
+		NSLog(@"Shape of size %i has loaded successfully!", dataShape.length);
+		//NSLog(@"length: %i", dataShape.length); 
+	}
+
+	////////////////////////////////////
+	// CONVERT NSDATA TO UIImage
+	////////////////////////////////////
+
+	UIImage *shapeImage = [UIImage imageWithData:dataShape];
+		
+	////////////////////////////////////
+	// CONVERT UIImage to JPEG
+	////////////////////////////////////
+
+	NSData *jpgDataHighestCompressionQuality = UIImageJPEGRepresentation(shapeImage, 1.0);
+	shapeImage = [UIImage imageWithData:jpgDataHighestCompressionQuality];
+
+	////////////////////////////////////
+	// MAKE WHITE COLOR TRANSPARENT IN SHAPE
+	// THIS IS NECESSARY WHEN SAVING MASK
+	//http://stackoverflow.com/questions/19443311/how-to-make-one-colour-transparent-in-uiimage
+	// WTF is colorMasking var?!?
+	// element #1 is R-MIN, element #2 is R-MAX, element #3 is G-MIN, element #4 is G-MAX, element #5 is B-MIN, element #6 is B-MAX
+	////////////////////////////////////
+
+	shapeImage = [self changeWhiteColorTransparent: shapeImage];
+
+	////////////////////////////////////
+	// GET THEME FILE FROM URL as NSDATA
+	////////////////////////////////////
+
+	NSData* dataTheme = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameThemeURL] options:NSDataReadingUncached error:&error];
+	if (error) {
+		NSLog(@"%@", [error localizedDescription]);			
+	} else {
+		NSLog(@"Theme of size %i has loaded successfully!", dataTheme.length);			
+	}
+
+	////////////////////////////////////
+	// CONVERT NSDATA TO UIImage
+	////////////////////////////////////
+
+	UIImage *themeImage = [UIImage imageWithData:dataTheme]; 
+
+	////////////////////////////////////
+	// CREATE GPUImagePictures from SHAPE & THEME
+	////////////////////////////////////
+
+	GPUImagePicture *shapePicture = [[GPUImagePicture alloc] initWithImage:shapeImage smoothlyScaleOutput:YES];
+	GPUImagePicture *themePicture = [[GPUImagePicture alloc] initWithImage:themeImage smoothlyScaleOutput:YES];
 		 
-		//GPUImageColorDodgeBlendFilter * filter3 = [[GPUImageColorDodgeBlendFilter alloc] init];
-		GPUImageTwoInputFilter * filter3 = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kGPUImageColorDodgeBlendFragmentShaderString];
+	////////////////////////////////////
+	// ADD SHAPE & THEME TO FRAME FILTER & PROCESS
+	////////////////////////////////////
 
-		[shapePicture addTarget:filter3];	 
-		[themePicture addTarget:filter3];		 
+	[shapePicture addTarget:frameFilter];	 
+	[themePicture addTarget:frameFilter];		 
 
-		[filter3 useNextFrameForImageCapture];
-		[shapePicture processImage];
-		[themePicture processImage];
+	[frameFilter useNextFrameForImageCapture];
 
-		UIImage *framePicture = [filter3 imageFromCurrentFramebuffer];
-		[self.frameView setImage:framePicture];						
+	[shapePicture processImage];
+	[themePicture processImage]; 
 
-		//UIImageView* viewFrame = [self.rootView viewWithTag:300];
+	////////////////////////////////////
+	// GET COMBINED SHAPE & THEME IMAGE
+	//////////////////////////////////// 
+	 
+	UIImage *frameImage = [frameFilter imageFromCurrentFramebuffer];
 
-		//if (viewFrame)
-		//{
-			//NSLog(@"FRAME CHANGED!");
-			//[viewFrame setImage:framePicture];		
-		//}
-		//else
-		//{
-			//NSLog(@"FRAME created!");
-			//UIView *v = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
-			//UIImageView *iv = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intWidth, intHeight)]; 
-			//self.frameView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intWidth, intHeight)]; 
-			//self.frameView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 375, 210)]; 
-			//self.frameView.tag = 300;
-			//[self.frameView setImage:framePicture];		
+	////////////////////////////////////
+	// CREATE FRAME VIEW
+	//////////////////////////////////// 
+	 
+	if (self.frameView == nil)
+	{
+		self.frameView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
+	}	
 
-			//UIImageView *iv = [[UIImageView alloc] initWithImage:framePicture];		
-			//[self.videoView addSubview:self.frameView]; 	
-		//}
+	////////////////////////////////////
+	// ADD IMAGE TO FRAME VIEW
+	////////////////////////////////////
+		 
+	[self.frameView setImage:frameImage];		
+
+	////////////////////////////////////
+	// ADD VIEW TO MEDIA MASK
+	////////////////////////////////////
+
+	if (self.mediaFrameEnabled != YES)
+	{
+		////////////////////////////////////
+		// ADD FRAME VIEW TO MASK
+		////////////////////////////////////
+		
+		[self.mediaMask addSubview:self.frameView];
+		self.mediaMaskEnabled = YES;
+	}
+
+	self.mediaFrameEnabled = YES;
+}
+
+- (void) changeFrame_OLD:(CDVInvokedUrlCommand *)command {
+
+	///////////////////////////////////////// 
+	// SET VARS
+	/////////////////////////////////////////	
+
+	NSDictionary *options = [command.arguments objectAtIndex: 0];
+  	NSError* error = nil;
+
+	NSString * strFrameShapeURL = [options objectForKey:@"frameShapeURL"];
+	NSString * strFrameThemeURL = [options objectForKey:@"frameThemeURL"];
+
+	////////////////////////////////////
+	// CREATE CUSTOM SHADER STRING
+	////////////////////////////////////
+
+	NSString *const kShaderString = SHADER_STRING
+	(	
+		precision mediump float;
+ 
+		varying highp vec2 textureCoordinate;
+		varying highp vec2 textureCoordinate2;
+ 
+		uniform sampler2D inputImageTexture;
+		uniform sampler2D inputImageTexture2; 
+ 
+		void main() 
+		{ 
+		vec4 shape = texture2D(inputImageTexture, textureCoordinate);
+		vec4 theme = texture2D(inputImageTexture2, textureCoordinate2);
+
+		gl_FragColor = shape;		
+		
+		if (shape.x <= 0.2) 
+		{ 					
+			gl_FragColor = theme; 
+		}
+		else if (shape.x >= 0.8) 
+		{
+			gl_FragColor = vec4(0.0, 0.0, 0.0, 0.5);		
+		}   
+		}
+	);  
+
+	////////////////////////////////////
+	// GET SHAPE FILE FROM URL as NSDATA
+	////////////////////////////////////
+		
+	NSData* dataShape = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameShapeURL] options:NSDataReadingUncached error:&error];
+	if (error) {
+		NSLog(@"%@", [error localizedDescription]);			
+	} else {
+		NSLog(@"Shape of size %i has loaded successfully!", dataShape.length);			
+	}
+
+	////////////////////////////////////
+	// CONVERT NSDATA TO UIImage
+	////////////////////////////////////
+
+	UIImage *shapeImage = [UIImage imageWithData:dataShape];
+
+	////////////////////////////////////
+	// GET THEME FILE FROM URL as NSDATA
+	////////////////////////////////////
+
+	NSData* dataTheme = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameThemeURL] options:NSDataReadingUncached error:&error];
+	if (error) {
+		NSLog(@"%@", [error localizedDescription]);			
+	} else {
+		NSLog(@"Theme of size %i has loaded successfully!", dataTheme.length);			
+	}
+
+	////////////////////////////////////
+	// CONVERT NSDATA TO UIImage
+	////////////////////////////////////
+
+	UIImage *themeImage = [UIImage imageWithData:dataTheme]; 
+
+	////////////////////////////////////
+	// CONVERT Images to GPUImagePictures
+	////////////////////////////////////
+
+	GPUImagePicture *shapePicture = [[GPUImagePicture alloc] initWithImage:shapeImage smoothlyScaleOutput:YES];
+	GPUImagePicture *themePicture = [[GPUImagePicture alloc] initWithImage:themeImage smoothlyScaleOutput:YES];
+		 
+	////////////////////////////////////
+	// CREATE TWO INPUT FILTER
+	////////////////////////////////////
+
+	GPUImageTwoInputFilter * frameFilter = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kShaderString];
+
+	////////////////////////////////////
+	// ADD FILTER
+	////////////////////////////////////
+
+	[shapePicture addTarget:frameFilter];	 
+	[themePicture addTarget:frameFilter];		 
+
+	////////////////////////////////////
+	// PROCESS IMAGE 
+	////////////////////////////////////
+
+	[frameFilter useNextFrameForImageCapture];
+	[shapePicture processImage];
+	[themePicture processImage];
+
+	////////////////////////////////////
+	// ADD TO VIEW
+	////////////////////////////////////
+
+	UIImage *framePicture = [frameFilter imageFromCurrentFramebuffer];
+	[self.frameView setImage:framePicture];		
 		
  }
 
  - (void) changeFilter:(CDVInvokedUrlCommand *)command {
 
-	NSLog(@"CHANGE FILTERS!!");   
+ 	///////////////////////////////////////// 
+	// SET VARS
+	/////////////////////////////////////////	
 
 	NSDictionary *options = [command.arguments objectAtIndex: 0];
   
 	int intFilterID = [[options objectForKey:@"filterID"] integerValue];
 
+	///////////////////////////////////////// 
+	// SELECT FILTER
+	/////////////////////////////////////////	
+
 	switch (intFilterID)
 	{
 		case 0:
-			filter = [[GPUImageBrightnessFilter alloc] init];		
+			mediaFilter = [[GPUImageBrightnessFilter alloc] init];		
 			saveFilter = [[GPUImageBrightnessFilter alloc] init];	
 			break;		
 		case 1:
-			filter = [[GPUImageSepiaFilter alloc] init];         
-			[(GPUImageSepiaFilter *)filter setIntensity:0.5];   			
+			mediaFilter = [[GPUImageSepiaFilter alloc] init];         
+			[(GPUImageSepiaFilter *)mediaFilter setIntensity:0.5];   			
 
 			saveFilter = [[GPUImageSepiaFilter alloc] init];         
 			[(GPUImageSepiaFilter *)saveFilter setIntensity:0.5];   			
 			break;
 		case 2:
-			filter = [[GPUImagePixellateFilter alloc] init];            
-			[(GPUImagePixellateFilter *)filter setFractionalWidthOfAPixel:0.0125];
+			mediaFilter = [[GPUImagePixellateFilter alloc] init];            
+			[(GPUImagePixellateFilter *)mediaFilter setFractionalWidthOfAPixel:0.0125];
 			
 			saveFilter = [[GPUImagePixellateFilter alloc] init];            
 			[(GPUImagePixellateFilter *)saveFilter setFractionalWidthOfAPixel:0.0125];			
 			break;
 		case 3:
-			filter = [[GPUImagePolkaDotFilter alloc] init];            
-			[(GPUImagePolkaDotFilter *)filter setFractionalWidthOfAPixel:0.0125];			
+			mediaFilter = [[GPUImagePolkaDotFilter alloc] init];            
+			[(GPUImagePolkaDotFilter *)mediaFilter setFractionalWidthOfAPixel:0.0125];			
 
 			saveFilter = [[GPUImagePolkaDotFilter alloc] init];            
 			[(GPUImagePolkaDotFilter *)saveFilter setFractionalWidthOfAPixel:0.0125];			
 			break;
 		case 4:
-			filter = [[GPUImageHalftoneFilter alloc] init];            
-			[(GPUImageHalftoneFilter *)filter setFractionalWidthOfAPixel:0.0125];			
+			mediaFilter = [[GPUImageHalftoneFilter alloc] init];            
+			[(GPUImageHalftoneFilter *)mediaFilter setFractionalWidthOfAPixel:0.0125];			
 
 			saveFilter = [[GPUImageHalftoneFilter alloc] init];            
 			[(GPUImageHalftoneFilter *)saveFilter setFractionalWidthOfAPixel:0.0125];			
 			break;
 		case 5:
-			filter = [[GPUImageSaturationFilter alloc] init];            
-			[(GPUImageSaturationFilter *)filter setSaturation:1.25];			
+			mediaFilter = [[GPUImageSaturationFilter alloc] init];            
+			[(GPUImageSaturationFilter *)mediaFilter setSaturation:1.25];			
 
 			saveFilter = [[GPUImageSaturationFilter alloc] init];            
 			[(GPUImageSaturationFilter *)saveFilter setSaturation:1.25];			
 			break;
 		case 6:
-			filter = [[GPUImageContrastFilter alloc] init];            
-			[(GPUImageContrastFilter  *)filter setContrast:2.0];			
+			mediaFilter = [[GPUImageContrastFilter alloc] init];            
+			[(GPUImageContrastFilter  *)mediaFilter setContrast:2.0];			
 
 			saveFilter = [[GPUImageContrastFilter alloc] init];            
 			[(GPUImageContrastFilter  *)saveFilter setContrast:2.0];			
 			break;
 		case 7:
-			filter = [[GPUImageMonochromeFilter alloc] init];            
-			[(GPUImageMonochromeFilter   *)filter setIntensity:0.5];			
+			mediaFilter = [[GPUImageMonochromeFilter alloc] init];            
+			[(GPUImageMonochromeFilter   *)mediaFilter setIntensity:0.5];			
 
 			saveFilter = [[GPUImageMonochromeFilter alloc] init];            
 			[(GPUImageMonochromeFilter   *)saveFilter setIntensity:0.5];			
 			break;
 		case 8:
-			filter = [[GPUImageSketchFilter  alloc] init];            
-			[(GPUImageSketchFilter  *)filter setEdgeStrength:0.25];			
+			mediaFilter = [[GPUImageSketchFilter  alloc] init];            
+			[(GPUImageSketchFilter  *)mediaFilter setEdgeStrength:0.25];			
 
 			saveFilter = [[GPUImageSketchFilter  alloc] init];            
 			[(GPUImageSketchFilter  *)saveFilter setEdgeStrength:0.25];			
 			break;
 		case 9:
-			filter = [[GPUImageHazeFilter alloc] init];            
-			[(GPUImageHazeFilter *)filter setDistance:0.2];			
+			mediaFilter = [[GPUImageHazeFilter alloc] init];            
+			[(GPUImageHazeFilter *)mediaFilter setDistance:0.2];			
 
 			saveFilter = [[GPUImageHazeFilter alloc] init];            
 			[(GPUImageHazeFilter *)saveFilter setDistance:0.2];			
 			break;
 		case 10:
-			filter = [[GPUImageSobelEdgeDetectionFilter alloc] init];            
-			[(GPUImageSobelEdgeDetectionFilter *)filter setEdgeStrength:0.25];			
+			mediaFilter = [[GPUImageSobelEdgeDetectionFilter alloc] init];            
+			[(GPUImageSobelEdgeDetectionFilter *)mediaFilter setEdgeStrength:0.25];			
 
 			saveFilter = [[GPUImageSobelEdgeDetectionFilter alloc] init];            
 			[(GPUImageSobelEdgeDetectionFilter *)saveFilter setEdgeStrength:0.25];			
 			break;
 		case 11:
-			filter = [[GPUImageAdaptiveThresholdFilter  alloc] init];            
-			[(GPUImageAdaptiveThresholdFilter *)filter setBlurRadiusInPixels:5];			
+			mediaFilter = [[GPUImageAdaptiveThresholdFilter  alloc] init];            
+			[(GPUImageAdaptiveThresholdFilter *)mediaFilter setBlurRadiusInPixels:5];			
 
 			saveFilter = [[GPUImageAdaptiveThresholdFilter  alloc] init];            
 			[(GPUImageAdaptiveThresholdFilter *)saveFilter setBlurRadiusInPixels:5];			
 			break;
 		case 12:
-			filter = [[GPUImageAverageLuminanceThresholdFilter  alloc] init];            
-			[(GPUImageAverageLuminanceThresholdFilter *)filter setThresholdMultiplier:1];			
+			mediaFilter = [[GPUImageAverageLuminanceThresholdFilter  alloc] init];            
+			[(GPUImageAverageLuminanceThresholdFilter *)mediaFilter setThresholdMultiplier:1];			
 
 			saveFilter = [[GPUImageAverageLuminanceThresholdFilter  alloc] init];            
 			[(GPUImageAverageLuminanceThresholdFilter *)saveFilter setThresholdMultiplier:1];			
 			break;
 		case 13:
-			filter = [[GPUImageKuwaharaFilter alloc] init];            
-			[(GPUImageKuwaharaFilter *)filter setRadius:round(3)];			
+			mediaFilter = [[GPUImageKuwaharaFilter alloc] init];            
+			[(GPUImageKuwaharaFilter *)mediaFilter setRadius:round(3)];			
 
 			saveFilter = [[GPUImageKuwaharaFilter alloc] init];            
 			[(GPUImageKuwaharaFilter *)saveFilter setRadius:round(3)];			
 			break;
 		case 14:
-			filter = [[GPUImageEmbossFilter alloc] init];            
-			[(GPUImageEmbossFilter *)filter setIntensity:2];			
+			mediaFilter = [[GPUImageEmbossFilter alloc] init];            
+			[(GPUImageEmbossFilter *)mediaFilter setIntensity:2];			
 
 			saveFilter = [[GPUImageEmbossFilter alloc] init];            
 			[(GPUImageEmbossFilter *)saveFilter setIntensity:2];			
 			break;		
 		case 15:
-			filter = [[GPUImageVignetteFilter  alloc] init];            
-			[(GPUImageVignetteFilter  *)filter setVignetteEnd:0.75];			
+			mediaFilter = [[GPUImageVignetteFilter  alloc] init];            
+			[(GPUImageVignetteFilter  *)mediaFilter setVignetteEnd:0.75];			
 
 			saveFilter = [[GPUImageVignetteFilter  alloc] init];            
 			[(GPUImageVignetteFilter  *)saveFilter setVignetteEnd:0.75];			
 			break;
 		default:
 			NSLog (@"Integer out of range");
-			break;
+			break; 
 	}
+	
+	///////////////////////////////////////// 
+	// ADD FILTER TO TARGET
+	/////////////////////////////////////////	
 
-	[filter removeAllTargets];
-	[movieFile removeAllTargets];
-
-	[movieFile addTarget:filter];	
-	[filter addTarget:self.videoView];		
-			
+	if (mediaFile != nil)
+	{
+		[mediaFilter removeAllTargets];
+		[mediaFile removeAllTargets];
+		
+		[mediaFile addTarget:mediaFilter];	
+		[mediaFilter addTarget:self.mediaView];		
+	}			
  }
 
  - (UIColor *)getUIColorObjectFromHexString:(NSString *)hexStr alpha:(CGFloat)alpha
@@ -1016,8 +1703,10 @@
   return hexInt;
 }
 
-
 - (void)addLimitedPanGesturesToView:(UIView *)view {
+	
+	self.currentTag = view.tag;
+
     view.userInteractionEnabled = YES;  // Enable user interaction
     
     UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleLimitedPanGesture:)];
@@ -1047,8 +1736,8 @@
 
 		int intItemOffset = (panGesture.view.frame.size.height / 2.0);
 
-		int intMinY = self.maskView.frame.origin.y + intItemOffset;
-		int intMaxY = self.maskView.frame.origin.y + self.maskView.frame.size.height - intItemOffset;
+		int intMinY = self.mediaMask.frame.origin.y + intItemOffset;
+		int intMaxY = self.mediaMask.frame.origin.y + self.mediaMask.frame.size.height - intItemOffset;
 
 		 if (newCenter.y >= intMinY && newCenter.y <= intMaxY) {
 			panGesture.view.center = newCenter;
@@ -1096,15 +1785,397 @@
         pinchGesture.view.transform = zoomTransform;
 
         // Reset to 1 for scale delta's
-        //  Note: not 0, or we won't see a size: 0 * width = 0
+        //  Note: not 0, or we won't see a size: 0 * width = 0 
         pinchGesture.scale = 1;
     }
+} 
+
+#pragma mark - Animated GIF Base methods
+
+/////////////////////////////////////
+// https://github.com/NSRare/NSGIF
+/////////////////////////////////////
+
+#define fileName     @"NSGIF"
+#define timeInterval @(600)
+#define tolerance    @(0.01)
+
+typedef NS_ENUM(NSInteger, GIFSize) {
+    GIFSizeVeryLow  = 2,
+    GIFSizeLow      = 3,
+    GIFSizeMedium   = 5,
+    GIFSizeHigh     = 7,
+    GIFSizeOriginal = 10 
+};
+
+- (void)optimalGIFfromURL:(NSURL*)videoURL loopCount:(int)loopCount completion:(void(^)(NSURL *GifURL))completionBlock {
+
+    float delayTime = 0.02f;
+    
+    // Create properties dictionaries
+    NSDictionary *fileProperties = [self filePropertiesWithLoopCount:loopCount];
+    NSDictionary *frameProperties = [self framePropertiesWithDelayTime:delayTime];
+    
+    AVURLAsset *asset = [AVURLAsset assetWithURL:videoURL];
+    
+    float videoWidth = [[[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0] naturalSize].width;
+    float videoHeight = [[[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0] naturalSize].height;
+    
+    GIFSize optimalSize = GIFSizeMedium;
+    if (videoWidth >= 1200 || videoHeight >= 1200)
+        optimalSize = GIFSizeVeryLow;
+    else if (videoWidth >= 800 || videoHeight >= 800)
+        optimalSize = GIFSizeLow;
+    else if (videoWidth >= 400 || videoHeight >= 400)
+        optimalSize = GIFSizeMedium;
+    else if (videoWidth < 400|| videoHeight < 400)
+        optimalSize = GIFSizeHigh;
+    
+    // Get the length of the video in seconds
+    float videoLength = (float)asset.duration.value/asset.duration.timescale;
+    int framesPerSecond = 4;
+    int frameCount = videoLength*framesPerSecond;
+    
+    // How far along the video track we want to move, in seconds.
+    float increment = (float)videoLength/frameCount; 
+    
+    // Add frames to the buffer
+    NSMutableArray *timePoints = [NSMutableArray array];
+    for (int currentFrame = 0; currentFrame < frameCount; ++currentFrame) {
+        float seconds = (float)increment * currentFrame;
+        CMTime time = CMTimeMakeWithSeconds(seconds, [timeInterval intValue]);
+        [timePoints addObject:[NSValue valueWithCMTime:time]];
+    }
+    
+    // Prepare group for firing completion block
+    dispatch_group_t gifQueue = dispatch_group_create();
+    dispatch_group_enter(gifQueue);
+    
+    __block NSURL *gifURL;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        
+        gifURL = [self createGIFforTimePoints:timePoints fromURL:videoURL fileProperties:fileProperties frameProperties:frameProperties frameCount:frameCount gifSize:optimalSize];
+        
+        dispatch_group_leave(gifQueue);
+    });
+    
+    dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
+        // Return GIF URL
+        completionBlock(gifURL);
+    });
+
 }
 
+- (void)createGIFfromURL:(NSURL*)videoURL framesPerSecond:(int)framesPerSecond playbackSpeed: (int)playbackSpeed maxDuration:(int)maxDuration loopCount:(int)loopCount completion:(void(^)(NSURL *GifURL))completionBlock {
+    
+    // Convert the video at the given URL to a GIF, and return the GIF's URL if it was created.
+    // The frames are spaced evenly over the video, and each has the same duration.
+    // delayTime is the amount of time for each frame in the GIF.
+    // loopCount is the number of times the GIF will repeat. Defaults to 0, which means repeat infinitely.
+    
+	//if([[NSFileManager defaultManager] fileExistsAtPath:[videoURL path]]){
+
+		//NSLog(@"File Exists");
+	//} 
+
+	AVURLAsset *asset = [AVURLAsset assetWithURL:videoURL];
+	float videoLength = (float)asset.duration.value/asset.duration.timescale;
+
+	if (videoLength > maxDuration)
+	{
+		//framesPerSecond = 1.0;
+		videoLength = maxDuration;
+	}
+   
+    float fltFrameCount = videoLength * framesPerSecond; // ASSUMES SOURCE IS AT 30 fps
+	int intFrameCount = (int) fltFrameCount;
+
+    //float fltTotalFrames = videoLength * 30.0; // ASSUMES SOURCE IS AT 30 fps
+	//float fltFrameCount = fltTotalFrames / framesPerSecond;
+	//int intFrameCount = (int) fltFrameCount;
+
+	float delayTime = (1.0 / framesPerSecond) / playbackSpeed; 
+
+	//float delayTime = 1.0 / framesPerSecond / 10.0; 
+    //float delayTime = 0.1; 
+	
+	//float delayTime = (1.0 / framesPerSecond) / 2.0; 
+	//float delayTime = (1.0 / framesPerSecond) / playbackSpeed; 
+
+    // Create properties dictionaries
+    NSDictionary *fileProperties = [self filePropertiesWithLoopCount:loopCount];
+    NSDictionary *frameProperties = [self framePropertiesWithDelayTime:delayTime];     
+    
+    // Get the length of the video in seconds    
+	
+	//float fltFrameCount = fltTotalFrames / framesPerSecond;
+	//float fltFrameCount = framesPerSecond * videoLength;
+	//int intFrameCount = (int) fltFrameCount;
+
+    // How far along the video track we want to move, in seconds.
+    float increment = (float) videoLength / intFrameCount;
+	
+	//NSLog(@"videoLength: %f, delayTime: %f, fltTotalFrames: %f, frameCount: %d", videoLength, delayTime, fltTotalFrames, intFrameCount);
+	//NSLog(@"videoLength: %f, delayTime: %f, intFrameCount: %d", videoLength, delayTime, intFrameCount);
+
+	// MAYBE LIMIT GIFS TO 15 SECS IN LENGTH!!!!
+
+    // Add frames to the buffer
+    NSMutableArray *timePoints = [NSMutableArray array];
+    for (int currentFrame = 0; currentFrame < intFrameCount; ++currentFrame) {
+        float seconds = (float)increment * currentFrame;
+        CMTime time = CMTimeMakeWithSeconds(seconds, [timeInterval intValue]);
+        [timePoints addObject:[NSValue valueWithCMTime:time]];
+		
+		//NSLog(@"Frame: %d, Time: %f", currentFrame, seconds);
+    }
+
+    // Prepare group for firing completion block
+    dispatch_group_t gifQueue = dispatch_group_create();
+    dispatch_group_enter(gifQueue);
+    
+    __block NSURL *gifURL;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        
+        gifURL = [self createGIFforTimePoints:timePoints fromURL:videoURL fileProperties:fileProperties frameProperties:frameProperties frameCount:intFrameCount gifSize:GIFSizeMedium];
+
+        dispatch_group_leave(gifQueue);
+    });
+    
+    dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
+        // Return GIF URL
+        completionBlock(gifURL);
+    });
+    
+}
+
+- (void)createGIFfromURL_OLD:(NSURL*)videoURL withFrameCount:(int)frameCount delayTime:(float)delayTime loopCount:(int)loopCount completion:(void(^)(NSURL *GifURL))completionBlock {
+    
+    // Convert the video at the given URL to a GIF, and return the GIF's URL if it was created.
+    // The frames are spaced evenly over the video, and each has the same duration.
+    // delayTime is the amount of time for each frame in the GIF.
+    // loopCount is the number of times the GIF will repeat. Defaults to 0, which means repeat infinitely.
+    
+	if([[NSFileManager defaultManager] fileExistsAtPath:[videoURL path]]){
+
+		NSLog(@"File Exists");
+	}
+
+    // Create properties dictionaries
+    NSDictionary *fileProperties = [self filePropertiesWithLoopCount:loopCount];
+    NSDictionary *frameProperties = [self framePropertiesWithDelayTime:delayTime];
+    
+    AVURLAsset *asset = [AVURLAsset assetWithURL:videoURL];
+
+    // Get the length of the video in seconds
+    float videoLength = (float)asset.duration.value/asset.duration.timescale;
+    
+    // How far along the video track we want to move, in seconds.
+    float increment = (float)videoLength/frameCount;
+    
+	//NSLog(@"Length: %f, Increment: %f", videoLength, increment);
+
+	//NSError *error = nil;
+	//AVAssetImageGenerator *generator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
+	//CGImageRef imageHandle = [generator copyCGImageAtTime:kCMTimeZero actualTime:NULL error:&error];
+
+	//if (error) {
+        //NSLog(@"Error copying image: %@", error);
+    //}
+
+    // Add frames to the buffer
+    NSMutableArray *timePoints = [NSMutableArray array];
+    for (int currentFrame = 0; currentFrame < frameCount; ++currentFrame) {
+        float seconds = (float)increment * currentFrame;
+        CMTime time = CMTimeMakeWithSeconds(seconds, [timeInterval intValue]);
+        [timePoints addObject:[NSValue valueWithCMTime:time]];
+		
+		NSLog(@"Frame: %d, Time: %f", currentFrame, seconds);
+    }
+
+    // Prepare group for firing completion block
+    dispatch_group_t gifQueue = dispatch_group_create();
+    dispatch_group_enter(gifQueue);
+    
+    __block NSURL *gifURL;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        
+        gifURL = [self createGIFforTimePoints:timePoints fromURL:videoURL fileProperties:fileProperties frameProperties:frameProperties frameCount:frameCount gifSize:GIFSizeMedium];
+
+        dispatch_group_leave(gifQueue);
+    });
+    
+    dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
+        // Return GIF URL
+        completionBlock(gifURL);
+    });
+    
+}
+
+- (NSURL *)createGIFforTimePoints_TEST:(NSArray *)timePoints fromURL:(NSURL *)url fileProperties:(NSDictionary *)fileProperties frameProperties:(NSDictionary *)frameProperties frameCount:(int)frameCount gifSize:(GIFSize)gifSize{
+
+	NSString *timeEncodedFileName = [NSString stringWithFormat:@"%@-%lu.gif", fileName, (unsigned long)([[NSDate date] timeIntervalSince1970]*10.0)];
+    NSString *temporaryFile = [NSTemporaryDirectory() stringByAppendingString:timeEncodedFileName];
+    NSURL *fileURL = [NSURL fileURLWithPath:temporaryFile];
+
+	NSLog(@"temporaryFile: %@", temporaryFile); 
+
+    if (fileURL == nil)
+	{
+        return nil;
+	}
+
+	CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)fileURL, kUTTypeGIF , frameCount, NULL);
+    
+	NSError *error = nil;
+	AVURLAsset *asset = [AVURLAsset assetWithURL:url];
+	AVAssetImageGenerator *generator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
+
+	generator.appliesPreferredTrackTransform = YES; 
+    
+    //CMTime tol = CMTimeMakeWithSeconds([tolerance floatValue], [timeInterval intValue]);
+    //generator.requestedTimeToleranceBefore = tol;
+    //generator.requestedTimeToleranceAfter = tol;   
+
+	CGImageRef imageHandle = [generator copyCGImageAtTime:kCMTimeZero actualTime:NULL error:&error];
+
+	if (error) {
+        NSLog(@"Error copying image: %@", error);
+    }
+
+	return fileURL;
+}
+
+- (NSURL *)createGIFforTimePoints:(NSArray *)timePoints fromURL:(NSURL *)url fileProperties:(NSDictionary *)fileProperties frameProperties:(NSDictionary *)frameProperties frameCount:(int)frameCount gifSize:(GIFSize)gifSize{
+	
+	NSString *timeEncodedFileName = [NSString stringWithFormat:@"%@-%lu.gif", fileName, (unsigned long)([[NSDate date] timeIntervalSince1970]*10.0)];
+    NSString *temporaryFile = [NSTemporaryDirectory() stringByAppendingString:timeEncodedFileName];
+    NSURL *fileURL = [NSURL fileURLWithPath:temporaryFile];
+
+	//NSLog(@"temporaryFile: %@", temporaryFile); 
+
+    if (fileURL == nil)
+        return nil;
+
+    CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)fileURL, kUTTypeGIF , frameCount, NULL);
+    
+    //AVURLAsset *asset = [AVURLAsset URLAssetWithURL:url options:nil];
+	//AVAssetImageGenerator *generator = [AVAssetImageGenerator assetImageGeneratorWithAsset:asset]; 
+
+	AVURLAsset *asset = [AVURLAsset assetWithURL:url];
+	AVAssetImageGenerator *generator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
+	//CGImageRef imageHandle = [generator copyCGImageAtTime:kCMTimeZero actualTime:NULL error:&error];
+
+	float videoLength = (float)asset.duration.value/asset.duration.timescale;        
+    float increment = (float)videoLength/frameCount;    
+	//NSLog(@"XXXX Length: %f, Increment: %f", videoLength, increment);
+
+	//AVURLAsset *asset = [[AVURLAsset alloc] initWithURL: url options:nil];
+	//AVAssetImageGenerator *generator = [[AVAssetImageGenerator alloc] initWithAsset:asset];    
+    
+    generator.appliesPreferredTrackTransform = YES;
+    
+    //CMTime tol = CMTimeMakeWithSeconds([tolerance floatValue], [timeInterval intValue]);
+    //generator.requestedTimeToleranceBefore = tol;
+    //generator.requestedTimeToleranceAfter = tol; 
+    
+    NSError *error = nil;
+    CGImageRef previousImageRefCopy = nil; 
+	
+	//CMTime time2 = [asset duration];
+	//CMTime actualTime;
+
+    for (NSValue *time in timePoints) {
+        
+		CGImageRef imageRef;
+        
+        //imageRef = (float)gifSize/10 != 1 ? createImageWithScale([generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error], (float)gifSize/10) : [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
+		imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
+
+		//CGImageRef imageRef = [generator copyCGImageAtTime:time2 actualTime:&actualTime error:&error];
+		//CGImageRef imageRef = [generator copyCGImageAtTime:kCMTimeZero actualTime:NULL error:&error];
+
+        if (error) {
+            NSLog(@"Error copying image: %@", error);
+        }
+        if (imageRef) {
+            CGImageRelease(previousImageRefCopy);
+            previousImageRefCopy = CGImageCreateCopy(imageRef);
+        } else if (previousImageRefCopy) {
+            imageRef = CGImageCreateCopy(previousImageRefCopy);
+        } else {
+            NSLog(@"Error copying image and no previous frames to duplicate");
+            return nil;
+        }
+        CGImageDestinationAddImage(destination, imageRef, (CFDictionaryRef)frameProperties);
+        CGImageRelease(imageRef);
+    }
+    CGImageRelease(previousImageRefCopy);
+    
+    CGImageDestinationSetProperties(destination, (CFDictionaryRef)fileProperties);
+    // Finalize the GIF
+    if (!CGImageDestinationFinalize(destination)) {
+        NSLog(@"Failed to finalize GIF destination: %@", error);
+        if (destination != nil) {
+            CFRelease(destination);
+        }
+        return nil;
+    }
+    CFRelease(destination);
+    
+    return fileURL;
+}
+
+#pragma mark - Animated GIF Helpers
+
+CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
+    
+    CGSize newSize = CGSizeMake(CGImageGetWidth(imageRef)*scale, CGImageGetHeight(imageRef)*scale);
+    CGRect newRect = CGRectIntegral(CGRectMake(0, 0, newSize.width, newSize.height));
+    
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, 0);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    if (!context) {
+        return nil;
+    }
+    
+    // Set the quality level to use when rescaling
+    CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
+    CGAffineTransform flipVertical = CGAffineTransformMake(1, 0, 0, -1, 0, newSize.height);
+    
+    CGContextConcatCTM(context, flipVertical);
+    // Draw into the context; this scales the image
+    CGContextDrawImage(context, newRect, imageRef);
+    
+    //Release old image
+    CFRelease(imageRef);
+    // Get the resized image from the context and a UIImage
+    imageRef = CGBitmapContextCreateImage(context);
+    
+    UIGraphicsEndImageContext();
+        
+    return imageRef;
+}
+
+#pragma mark - Animated GIF Properties
+
+- (NSDictionary *)filePropertiesWithLoopCount:(int)loopCount {
+    return @{(NSString *)kCGImagePropertyGIFDictionary:
+                @{(NSString *)kCGImagePropertyGIFLoopCount: @(loopCount)}
+             };
+}
+
+- (NSDictionary *)framePropertiesWithDelayTime:(float)delayTime {
+
+    return @{(NSString *)kCGImagePropertyGIFDictionary:
+                @{(NSString *)kCGImagePropertyGIFDelayTime: @(delayTime)},
+                (NSString *)kCGImagePropertyColorModel:(NSString *)kCGImagePropertyColorModelRGB
+            };
+}
 
 @end
 
-@interface GPUVideoMovie () <AVPlayerItemOutputPullDelegate>
+@interface GPUImageMoviePlus () <AVPlayerItemOutputPullDelegate>
 {
     BOOL audioEncodingIsFinished, videoEncodingIsFinished;
     GPUImageMovieWriter *synchronizedMovieWriter;
@@ -1138,7 +2209,7 @@
 
 @end
 
-@implementation GPUVideoMovie
+@implementation GPUImageMoviePlus
 
 @synthesize url = _url;
 @synthesize asset = _asset;
@@ -1283,7 +2354,7 @@
     NSDictionary *inputOptions = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:AVURLAssetPreferPreciseDurationAndTimingKey];
     AVURLAsset *inputAsset = [[AVURLAsset alloc] initWithURL:self.url options:inputOptions];
     
-    GPUVideoMovie __block *blockSelf = self;
+    GPUImageMoviePlus __block *blockSelf = self;
     
     [inputAsset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -1376,7 +2447,7 @@
         return;
     }
 
-    __unsafe_unretained GPUVideoMovie *weakSelf = self;
+    __unsafe_unretained GPUImageMoviePlus *weakSelf = self;
 
     if (synchronizedMovieWriter != nil)
     {
@@ -1402,7 +2473,9 @@
 		float duration = self.asset.duration.value * 1.0f / self.asset.duration.timescale;
 		self.duration = duration;
 
-		while (self.stop == NO)
+		int intCounter = 0;
+
+		while (self.stop == NO) 
 		{
 			if (self.pause == NO)
 			{
@@ -1410,8 +2483,15 @@
 				self.currentTime = current;
 				
 				//NSLog(@"Current frame time : %f secs", self.currentTime);
+				//NSLog(@"Frame: %d", intCounter);
 
-				[weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput];
+				//[weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput counter: intCounter skipFrames: self.skipFrames];
+				[weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput counter: intCounter];
+
+				if (intCounter >= 30)
+				{
+					intCounter = 0;	
+				}
 
 				if ( (readerAudioTrackOutput) && (!audioEncodingIsFinished) )
 				{
@@ -1424,6 +2504,8 @@
 					break;
 				}
 			}
+
+			intCounter += 1;
 		}
 
 		//while (reader.status == AVAssetReaderStatusReading && self.pause == NO && self.stop == NO)
@@ -1528,7 +2610,7 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
 {
     // Sample code taken from here https://developer.apple.com/library/mac/samplecode/AVGreenScreenPlayer/Listings/AVGreenScreenPlayer_GSPlayerView_m.html
     
-    GPUVideoMovie *self = (__bridge GPUVideoMovie *)displayLinkContext;
+    GPUImageMoviePlus *self = (__bridge GPUImageMoviePlus *)displayLinkContext;
     AVPlayerItemVideoOutput *playerItemOutput = self->playerItemOutput;
     
     
@@ -1544,7 +2626,7 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
 
 - (void)processPixelBufferAtTime:(CMTime)outputItemTime {
     if ([playerItemOutput hasNewPixelBufferForItemTime:outputItemTime]) {
-        __unsafe_unretained GPUVideoMovie *weakSelf = self;
+        __unsafe_unretained GPUImageMoviePlus *weakSelf = self;
         CVPixelBufferRef pixelBuffer = [playerItemOutput copyPixelBufferForItemTime:outputItemTime itemTimeForDisplay:NULL];
         if( pixelBuffer )
             runSynchronouslyOnVideoProcessingQueue(^{
@@ -1554,7 +2636,7 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
     }
 }
 
-- (BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput;
+- (BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput counter:(int *) intCounter;
 {
     if (reader.status == AVAssetReaderStatusReading && ! videoEncodingIsFinished)
     {
@@ -1583,13 +2665,42 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
                 previousFrameTime = currentSampleTime;
                 previousActualFrameTime = CFAbsoluteTimeGetCurrent();
             }
+			
+			//BOOL skipFrames = NO;
+			BOOL bolProcessFrame = YES;
 
-            __unsafe_unretained GPUVideoMovie *weakSelf = self;
-            runSynchronouslyOnVideoProcessingQueue(^{
-                [weakSelf processMovieFrame:sampleBufferRef];
-                CMSampleBufferInvalidate(sampleBufferRef);
-                CFRelease(sampleBufferRef);
-            });
+			if (self.framesPerSecond < 30)
+			{
+				bolProcessFrame = NO;
+
+				//int intSkipper = 30.0 / self.framesPerSecond;
+
+				if (self.frameSkipper >= self.skipRate)
+				{
+					bolProcessFrame = YES;		
+					self.frameSkipper = 1;	
+				}
+				else
+				{
+					self.frameSkipper += 1;
+				}
+
+				//if (intCounter == 5 || intCounter == 10 || intCounter == 15 || intCounter == 20 || intCounter == 25)
+				//if (30 / self.framesPerSecond % intCounter == 1)
+				//{
+					//bolProcessFrame = YES;			
+				//}
+			}
+
+			if (bolProcessFrame == YES)
+			{
+				__unsafe_unretained GPUImageMoviePlus *weakSelf = self;
+				runSynchronouslyOnVideoProcessingQueue(^{
+					[weakSelf processMovieFrame:sampleBufferRef];
+					CMSampleBufferInvalidate(sampleBufferRef);
+					CFRelease(sampleBufferRef); 
+				});
+			}			
 
             return YES;
         }
