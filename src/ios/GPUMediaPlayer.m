@@ -1088,15 +1088,15 @@
 {   
 	int intCurrentTime = (mediaFile.currentTime + 0.5);
 
+	float audioRemaining = self.audioPlayer.duration - self.audioPlayer.currentTime;
+	float videoRemaining = self.audioPlayer.duration - mediaFile.currentTime;
+
 	if (intCurrentTime > mediaFile.currentTimeInSecs)
 	{		
 		///////////////////////////////
 		// ADJUST AUDIO RATE!!!!!
 		///////////////////////////////
-
-		float audioRemaining = self.audioPlayer.duration - self.audioPlayer.currentTime;
-		float videoRemaining = self.audioPlayer.duration - mediaFile.currentTime;
-
+		
 		float audioDiff = videoRemaining - audioRemaining;
 
 		//NSLog(@"Current audio time : %f %f %f %f", audioDuration, audioRemaining, videoRemaining, audioDiff);	
@@ -1132,7 +1132,7 @@
 		[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
 		[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
 	}	
-	else
+	else if (videoRemaining < 0.95)
 	{
 		[playbackTimer invalidate];
          playbackTimer = nil;
