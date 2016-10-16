@@ -474,6 +474,18 @@
 	}	
  }
 
+ - (void) restart:(CDVInvokedUrlCommand *)command {
+
+	[mediaFile endProcessing];    
+	[mediaFile startProcessing];    	
+
+	if (self.mediaType == 1) // 1 = video
+	{
+		[self.audioPlayer stop];
+		[self.audioPlayer play];
+	}		
+ }
+
 - (void) stop:(CDVInvokedUrlCommand *)command {
 	if (mediaFile.stop == NO)
 	{
