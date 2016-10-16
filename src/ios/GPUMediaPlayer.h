@@ -89,7 +89,7 @@ This property is not key-value observable.
 	GPUImagePicture *overlay;
 	GPUImageMovieWriter *movieWriter;
 	GPUImageMovie *saveFile;
-	NSTimer * timer;
+	NSTimer * playbackTimer;
 	NSTimer *saveTimer; 
 }
 
