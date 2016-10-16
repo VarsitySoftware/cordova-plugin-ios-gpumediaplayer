@@ -470,18 +470,37 @@
 		if (self.mediaType == 1) // 1 = video
 		{
 			[self.audioPlayer play];
-		}		
-	}	
+		}		 
+	}	 
  }
 
- - (void) restart:(CDVInvokedUrlCommand *)command {
+ - (void) restart:(CDVInvokedUrlCommand *)command { 
 
-	[mediaFile endProcessing];    
+	NSError* error = nil;
+
+	if (mediaFile.stop == NO)
+	{
+		mediaFile.stop = YES;
+	}
+
+	//[mediaFile endProcessing];    
+
+	//mediaFile.currentTimeInSecs = 0;
+
+	usleep(1000000);  // SLEEP FOR 1 SEC
+		
+	mediaFile.pause = NO;
+	mediaFile.stop = NO;
 	[mediaFile startProcessing];    	
 
 	if (self.mediaType == 1) // 1 = video
 	{
 		[self.audioPlayer stop];
+
+		self.audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:self.mediaLocalURL error:&error];	
+		self.audioPlayer.numberOfLoops = 0;	
+		[self.audioPlayer setEnableRate:YES];
+		self.audioPlayer.delegate  = self;	
 		[self.audioPlayer play];
 	}		
  }
@@ -2548,6 +2567,8 @@ CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
                     //[weakSelf readNextAudioSampleFromOutput:readerAudioTrackOutput];
             //}
         //}
+
+		NSLog(@"XXXXXXXX");
 
         if (reader.status == AVAssetReaderStatusCompleted || self.stop == YES) {
                 
