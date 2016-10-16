@@ -484,7 +484,11 @@
 		}		
 	}  
 
-	[self.mediaContainer removeFromSuperview];
+	//[self.mediaContainer removeFromSuperview];
+	//self.mediaContainer = nil;
+
+	[self.scrollView removeFromSuperview];
+	self.scrollView = nil;
  }
  
  - (void) save:(CDVInvokedUrlCommand *)command { 
