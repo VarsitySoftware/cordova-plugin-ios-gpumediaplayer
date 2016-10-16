@@ -446,7 +446,8 @@
 	// GENERATE PROGRESS INFO USING TIMER
 	////////////////////////////////////
 
-	NSTimer *playbackTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(showProgress:) userInfo:nil repeats:YES];	
+	//NSTimer *playbackTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(showProgress:) userInfo:nil repeats:YES];	
+	playbackTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(showProgress:) userInfo:nil repeats:YES];	
 }
   
 - (void) pause:(CDVInvokedUrlCommand *)command {
@@ -1131,6 +1132,19 @@
 		[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
 		[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
 	}	
+	else
+	{
+		[playbackTimer invalidate];
+         playbackTimer = nil;
+
+		self.jsonResults[@"duration"] = [[NSNumber numberWithFloat:mediaFile.duration] stringValue];
+		self.jsonResults[@"currentTime"] = [[NSNumber numberWithFloat:mediaFile.duration] stringValue];	
+
+		self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+		[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+		[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
+	}
 }
 
 -(void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
