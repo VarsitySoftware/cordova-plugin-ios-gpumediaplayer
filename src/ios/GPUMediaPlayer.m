@@ -477,11 +477,7 @@
  - (void) restart:(CDVInvokedUrlCommand *)command { 
 
 	NSError* error = nil;
-
-	if (mediaFile.stop == NO)
-	{
-		mediaFile.stop = YES;
-	}
+	mediaFile.stop = YES;
 
 	//[mediaFile endProcessing];    
 
