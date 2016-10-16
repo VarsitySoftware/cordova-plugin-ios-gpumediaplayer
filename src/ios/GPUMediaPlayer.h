@@ -124,6 +124,7 @@ This property is not key-value observable.
 -(void)play:(CDVInvokedUrlCommand *)command;
 -(void)pause:(CDVInvokedUrlCommand *)command;
 -(void)stop:(CDVInvokedUrlCommand *)command;
+-(void)restart:(CDVInvokedUrlCommand *)command;
 -(void)save:(CDVInvokedUrlCommand *)command;
 
 -(void)changeFilter:(CDVInvokedUrlCommand *)command;
