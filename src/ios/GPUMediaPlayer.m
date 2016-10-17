@@ -31,9 +31,17 @@
 	/////////////////////////////////////////
 
 	self.callbackId = command.callbackId;
+	options = [command.arguments objectAtIndex: 0];
 
-    NSDictionary *options = [command.arguments objectAtIndex: 0];
-  
+	[self begin];
+}
+
+- (void) begin {
+    
+	///////////////////////////////////////// 
+	// SET VARS
+	/////////////////////////////////////////
+
 	NSString * strMediaURL = [options objectForKey:@"mediaURL"];
 	int intOrientation = [[options objectForKey:@"mediaOrientation"] integerValue];
 	int intMediaType = [[options objectForKey:@"mediaType"] integerValue];
@@ -60,6 +68,8 @@
 	int intCaptionEnabled = [[options objectForKey:@"captionEnabled"] integerValue];
 	NSString * strCaptionText= [options objectForKey:@"captionText"];
 	int intCaptionFontSize = [[options objectForKey:@"captionFontSize"] integerValue];
+
+	int intLoop = [[options objectForKey:@"loop"] integerValue];
 
 	NSURL* mediaRemoteURL = [NSURL URLWithString:strMediaURL];   
 	
@@ -98,20 +108,25 @@
 
 	strMediaFileExtension = @"mp4";
 
-	//if (intMediaType == 1) // 1 = video
-	//{		
-		//strMediaFileExtension = @"mp4";
-	//}
-	//else if (intMediaType == 2) // 2 = GIF
-	//{
-		//strMediaFileExtension = @"gif";
-	//}
-
 	///////////////////////////////////////// 
 	// DOWNLOAD MEDIA FILE TO DEVICE IN ORDER TO PLAY  
 	/////////////////////////////////////////
 
-	self.mediaLocalURL = [self saveLocalFileFromRemoteUrl: mediaRemoteURL extension:strMediaFileExtension]; 
+	if (self.mediaLocalURL == nil)
+	{
+		NSLog(@"DOWNLOADING FILE...");
+		self.mediaLocalURL = [self saveLocalFileFromRemoteUrl: mediaRemoteURL extension:strMediaFileExtension]; 
+	}
+
+	/////////////////////////////////////////
+	// GET FRAME RATE (FPS) OF MEDIA FILE
+	/////////////////////////////////////////  
+
+	AVAsset * mediaAsset = [[AVURLAsset alloc] initWithURL: self.mediaLocalURL options: nil];
+	AVAssetTrack * videoAssetTrack = [mediaAsset tracksWithMediaType: AVMediaTypeVideo].firstObject;
+	float mediaFPS = videoAssetTrack.nominalFrameRate;
+	
+	NSLog(@"FPS is  : %f ", videoAssetTrack.nominalFrameRate);
 
 	/////////////////////////////////////////
 	// CREATE MEDIA FILE INSTANCE FROM LOCAL FILE
@@ -124,8 +139,37 @@
 	mediaFile.stop = NO;
 	mediaFile.currentTimeInSecs = 0;
 	mediaFile.frameSkipper = 1;
-	mediaFile.framesPerSecond = intFramesPerSecond;	
-	mediaFile.skipRate = 30 / mediaFile.framesPerSecond;
+	
+	mediaFile.fpsOutput = intFramesPerSecond;	
+	mediaFile.fpsInput = mediaFPS;
+
+	//mediaFile.skipRate = 30 / mediaFile.framesPerSecond;
+	float fltSkipRate = mediaFile.fpsInput / mediaFile.fpsOutput;
+	int intSkipRate = (int)fltSkipRate;
+
+	mediaFile.skipRate = intSkipRate;
+
+	if (self.seekTo > 0)
+	{
+		mediaFile.seekTo = self.seekTo;
+	}
+
+	///////////////////////////////////////// 
+	// LOOP?
+	/////////////////////////////////////////
+
+	if (intLoop == 1)
+	{
+		self.loop = YES;
+	}
+	else
+	{
+		self.loop = NO;
+	}
+
+	///////////////////////////////////////// 
+	// USE BENCHMARKING?  SLOWS PERFORMANCE
+	/////////////////////////////////////////
 
 	//mediaFile.runBenchmark = YES; 
 
@@ -147,9 +191,12 @@
 	// CREATE MEDIA MASK
 	/////////////////////////////////////////
 
-	self.mediaMask = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)];	
-	self.mediaMask.backgroundColor = [UIColor clearColor];
-	self.mediaMask.opaque = NO;
+	if (self.mediaMask == nil)
+	{
+		self.mediaMask = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)];	
+		self.mediaMask.backgroundColor = [UIColor clearColor];
+		self.mediaMask.opaque = NO;
+	}	
 
 	[self.mediaContainer addSubview:self.mediaMask];
 
@@ -167,7 +214,10 @@
 	// CREATE DEFAULT SAVE FILTER
 	/////////////////////////////////////////
 
-	saveFilter = [[GPUImageBrightnessFilter alloc] init];	 
+	if (saveFilter == nil)
+	{
+		saveFilter = [[GPUImageBrightnessFilter alloc] init];	 
+	}
 
 	///////////////////////////////////////// 
 	// ADD MEDIA FILTER TO MEDIA FILE
@@ -425,6 +475,11 @@
 		self.audioPlayer.numberOfLoops = 0;	
 		[self.audioPlayer setEnableRate:YES];
 		self.audioPlayer.delegate  = self;	
+
+		if (self.seekTo > 0)
+		{
+			[self.audioPlayer setCurrentTime:self.seekTo];		
+		}
 	}
 
 	////////////////////////////////////
@@ -472,9 +527,35 @@
 			[self.audioPlayer play];
 		}		 
 	}	 
+ } 
+
+ - (void) restart:(CDVInvokedUrlCommand *)command { 	
+	
+	self.seekTo = 0;
+	[self stop:command];
+	[self begin];
  }
 
- - (void) restart:(CDVInvokedUrlCommand *)command { 
+ - (void) seek:(CDVInvokedUrlCommand *)command {
+	
+	////////////////////////////	
+	// NOT WORKING YET!!!
+	////////////////////////////
+
+	NSDictionary *options = [command.arguments objectAtIndex: 0];
+  
+	int intSeekTo = [[options objectForKey:@"seekTo"] integerValue];
+   
+	self.seekTo = intSeekTo;
+
+	//mediaFile.seekTo = intSeekTo;
+	//[self.audioPlayer setCurrentTime:intSeekTo];		
+
+	[self stop:command];
+	[self begin];
+ }
+
+ - (void) restart_OLD:(CDVInvokedUrlCommand *)command { 
 
 	NSError* error = nil;
 	mediaFile.stop = YES;
@@ -487,6 +568,7 @@
 		
 	mediaFile.pause = NO;
 	mediaFile.stop = NO;
+
 	[mediaFile startProcessing];    	
 
 	if (self.mediaType == 1) // 1 = video
@@ -504,6 +586,9 @@
 - (void) stop:(CDVInvokedUrlCommand *)command {
 	if (mediaFile.stop == NO)
 	{
+		[playbackTimer invalidate];
+        playbackTimer = nil;
+
 		mediaFile.stop = YES;				
 		
 		if (self.mediaType == 1) // 1 = video
@@ -511,10 +596,7 @@
 			[self.audioPlayer stop];
 		}		
 	}  
-
-	//[self.mediaContainer removeFromSuperview];
-	//self.mediaContainer = nil;
-
+	
 	[self.scrollView removeFromSuperview];
 	self.scrollView = nil;
  }
@@ -1161,8 +1243,10 @@
 	}	
 	else if (videoRemaining < 0.95)
 	{
+		self.seekTo = 0;  // RESET ANY SEEK
+
 		[playbackTimer invalidate];
-         playbackTimer = nil;
+		playbackTimer = nil;
 
 		self.jsonResults[@"duration"] = [[NSNumber numberWithFloat:mediaFile.duration] stringValue];
 		self.jsonResults[@"currentTime"] = [[NSNumber numberWithFloat:mediaFile.duration] stringValue];	
@@ -1177,6 +1261,11 @@
 -(void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
 {    
 	NSLog(@"FINISHED AUDIO!!!");    
+
+	if (self.loop == YES)
+	{
+		[self restart:nil];		
+	}
 }
   
 -(void)saveFileProgress:(NSTimer*)timer
@@ -2421,6 +2510,26 @@ CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
     NSError *error = nil;
     AVAssetReader *assetReader = [AVAssetReader assetReaderWithAsset:self.asset error:&error];
 
+	/////////////////////////////////
+	// SEEK?
+	/////////////////////////////////
+	
+	//int intSeek = 0;
+	//int intChunk = 800;
+	//int intSampleRate = 8000;
+
+	//if (self.seekTo > 0)
+	//{
+		//NSLog(@"TRYING TO SEEK!!!!");
+
+		//CMTime startTime = CMTimeMake(intSeek * intChunk, intSampleRate);    
+		//CMTime startTime = CMTimeMake(self.seekTo, 1);    
+		//CMTimeRange timeRange = CMTimeRangeMake(startTime, kCMTimePositiveInfinity);
+		//assetReader.timeRange = timeRange;
+
+		//self.seekTo = 0;
+	//}
+
     NSMutableDictionary *outputSettings = [NSMutableDictionary dictionary];
     if ([GPUImageContext supportsFastTextureUpload]) {
         [outputSettings setObject:@(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) forKey:(id)kCVPixelBufferPixelFormatTypeKey];
@@ -2476,19 +2585,23 @@ CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
     AVAssetReaderOutput *readerAudioTrackOutput = nil;
 
     audioEncodingIsFinished = YES;
-    for( AVAssetReaderOutput *output in reader.outputs ) {
-        if( [output.mediaType isEqualToString:AVMediaTypeAudio] ) {
+
+    for (AVAssetReaderOutput *output in reader.outputs ) 
+	{
+        if( [output.mediaType isEqualToString:AVMediaTypeAudio] ) 
+		{
             audioEncodingIsFinished = NO;
             readerAudioTrackOutput = output;
         }
-        else if( [output.mediaType isEqualToString:AVMediaTypeVideo] ) {
+        else if( [output.mediaType isEqualToString:AVMediaTypeVideo] ) 
+		{
             readerVideoTrackOutput = output;
         }
     }
 
     if ([reader startReading] == NO) 
     {
-            NSLog(@"Error reading from file at URL: %@", self.url);
+        NSLog(@"Error reading from file at URL: %@", self.url);
         return;
     }
 
@@ -2518,25 +2631,30 @@ CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
 		float duration = self.asset.duration.value * 1.0f / self.asset.duration.timescale;
 		self.duration = duration;
 
-		int intCounter = 0;
+		int intFrameNumber = 0;
+		int intFrameStart = 0;
+
+		if (self.seekTo > 0)
+		{
+			float fltFrameStart = self.seekTo * self.fpsInput;
+			intFrameStart = (int) fltFrameStart;
+			self.seekTo = 0;
+		}		
+
+		NSLog(@"XXXX Frame Start: %i", intFrameStart); 
 
 		while (self.stop == NO) 
 		{
-			if (self.pause == NO)
+			if (self.pause == NO) 
 			{
-			    float current = processingFrameTime.value * 1.0f / processingFrameTime.timescale;
+				//NSLog(@"XXXX Frame: %i", intFrameNumber); 
+
+				float current = processingFrameTime.value * 1.0f / processingFrameTime.timescale;
 				self.currentTime = current;
-				
-				//NSLog(@"Current frame time : %f secs", self.currentTime);
-				//NSLog(@"Frame: %d", intCounter);
 
-				//[weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput counter: intCounter skipFrames: self.skipFrames];
-				[weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput counter: intCounter];
-
-				if (intCounter >= 30)
-				{
-					intCounter = 0;	
-				}
+				//[weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput];
+					
+				[weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput frameStart:intFrameStart frameNumber:intFrameNumber];
 
 				if ( (readerAudioTrackOutput) && (!audioEncodingIsFinished) )
 				{
@@ -2550,7 +2668,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
 				}
 			}
 
-			intCounter += 1;
+			intFrameNumber += 1;
 		}
 
 		//while (reader.status == AVAssetReaderStatusReading && self.pause == NO && self.stop == NO)
@@ -2564,13 +2682,17 @@ CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
             //}
         //}
 
-		NSLog(@"XXXXXXXX");
+		//NSLog(@"XXXXXXXX");
 
         if (reader.status == AVAssetReaderStatusCompleted || self.stop == YES) {
                 
             [reader cancelReading];
-
+			
             if (keepLooping) {
+				
+				self.stop = NO;
+				self.pause = NO;
+
                 reader = nil;
                 dispatch_async(dispatch_get_main_queue(), ^{
                     [self startProcessing];
@@ -2683,15 +2805,29 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
     }
 }
 
-- (BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput counter:(int *) intCounter;
+//- (BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput counter:(int *) intCounter;
+//- (BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput;
+- (BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput frameStart:(int *) intFrameStart frameNumber:(int *) intFrameNumber;
 {
+
+	// http://stackoverflow.com/questions/31272799/read-avasset-into-frames-and-compile-back-to-video 
+	
+	//NSLog(@"Frame: %i, Start: %i", intFrameNumber, intFrameStart); 
+
     if (reader.status == AVAssetReaderStatusReading && ! videoEncodingIsFinished)
     {
         CMSampleBufferRef sampleBufferRef = [readerVideoTrackOutput copyNextSampleBuffer];
-        if (sampleBufferRef) 
+        if (sampleBufferRef)  
         {
+			if (intFrameNumber < intFrameStart)
+			{
+				previousFrameTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBufferRef);
+				return YES;
+			} 
+
             //NSLog(@"read a video frame: %@", CFBridgingRelease(CMTimeCopyDescription(kCFAllocatorDefault, CMSampleBufferGetOutputPresentationTimeStamp(sampleBufferRef))));
             if (_playAtActualSpeed)
+			//if (1 == 2)
             {
                 // Do this outside of the video processing queue to not slow that down while waiting
                 CMTime currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBufferRef);
@@ -2701,7 +2837,7 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
                 CGFloat frameTimeDifference = CMTimeGetSeconds(differenceFromLastFrame);
                 CGFloat actualTimeDifference = currentActualTime - previousActualFrameTime;
                 
-				//NSLog(@"frameTimeDifference %f, actualTimeDifference %f", frameTimeDifference, actualTimeDifference);
+				//NSLog(@"frameTimeDifference %f, actualTimeDifference %f", frameTimeDifference, actualTimeDifference); 
 
                 if (frameTimeDifference > actualTimeDifference)
                 {					
@@ -2710,13 +2846,13 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
                 }
                 
                 previousFrameTime = currentSampleTime;
-                previousActualFrameTime = CFAbsoluteTimeGetCurrent();
+                previousActualFrameTime = CFAbsoluteTimeGetCurrent(); 
             }
 			
 			//BOOL skipFrames = NO;
 			BOOL bolProcessFrame = YES;
 
-			if (self.framesPerSecond < 30)
+			if (self.fpsOutput < self.fpsInput)
 			{
 				bolProcessFrame = NO;
 
@@ -3074,7 +3210,7 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
     {
         CFAbsoluteTime currentFrameTime = (CFAbsoluteTimeGetCurrent() - startTime);
         //NSLog(@"Current frame time : %f ms", 1000.0 * currentFrameTime);
-		NSLog(@"YO MAMA!!!  Current frame time : %f ms", 1000.0 * currentFrameTime);
+		//NSLog(@"YO MAMA!!!  Current frame time : %f ms", 1000.0 * currentFrameTime);
     }
 }
 
