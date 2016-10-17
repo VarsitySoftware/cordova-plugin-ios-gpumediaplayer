@@ -139,7 +139,8 @@
 	mediaFile.stop = NO;
 	mediaFile.currentTimeInSecs = 0;
 	mediaFile.frameSkipper = 1;
-	
+	mediaFile.timeElapsed = 0;
+
 	mediaFile.fpsOutput = intFramesPerSecond;	
 	mediaFile.fpsInput = mediaFPS;
 
@@ -1204,8 +1205,7 @@
 }
 
 -(void)showProgress:(NSTimer*)timer
-{   
-	
+{   	
 	int intCurrentTime = (mediaFile.currentTime + 0.5);
 
 	float audioRemaining = self.audioPlayer.duration - self.audioPlayer.currentTime;
@@ -1266,10 +1266,7 @@
 
 		//[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
 		//[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
-	}
-
-	int intTimeElapsed = (mediaFile.timeElapsed + 1);
-	mediaFile.timeElapsed = intTimeElapsed;
+	}	
 
 	if (mediaFile.timeElapsed <= mediaFile.duration)
 	{
@@ -1280,6 +1277,9 @@
 
 		[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
 		[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
+
+		int intTimeElapsed = (mediaFile.timeElapsed + 1);
+		mediaFile.timeElapsed = intTimeElapsed;
 	}
 }
 
