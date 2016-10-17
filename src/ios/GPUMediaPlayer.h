@@ -29,13 +29,17 @@
 
 @property(readwrite, nonatomic) BOOL pause;
 @property(readwrite, nonatomic) BOOL stop;
+
 @property(readwrite, nonatomic) float currentTime;
 @property(readwrite, nonatomic) int currentTimeInSecs;
 @property(readwrite, nonatomic) float duration;
 
-@property(readwrite, nonatomic) int framesPerSecond;
+@property(readwrite, nonatomic) float fpsInput;
+@property(readwrite, nonatomic) int fpsOutput; 
 @property(readwrite, nonatomic) int frameSkipper;
 @property(readwrite, nonatomic) int skipRate;
+
+@property(readwrite, nonatomic) int seekTo;
 
 /** This enables the benchmarking mode, which logs out instantaneous and average frame times to the console
 */
@@ -91,9 +95,12 @@ This property is not key-value observable.
 	GPUImageMovie *saveFile;
 	NSTimer * playbackTimer;
 	NSTimer *saveTimer; 
+	NSDictionary *options;
 }
 
 @property (copy)NSString* callbackId;
+
+@property(readwrite, nonatomic) BOOL loop;
 
 @property (nonatomic, strong)AVAudioPlayer *audioPlayer;
 @property (strong, nonatomic) UIView* rootView;
@@ -119,6 +126,7 @@ This property is not key-value observable.
 @property (strong, nonatomic) UIImageView* frameView;
 
 @property(readwrite, nonatomic) int currentTag;
+@property(readwrite, nonatomic) int seekTo;
 
 -(void)start:(CDVInvokedUrlCommand *)command;
 -(void)play:(CDVInvokedUrlCommand *)command;
@@ -126,6 +134,8 @@ This property is not key-value observable.
 -(void)stop:(CDVInvokedUrlCommand *)command;
 -(void)restart:(CDVInvokedUrlCommand *)command;
 -(void)save:(CDVInvokedUrlCommand *)command;
+
+-(void)begin; 
 
 -(void)changeFilter:(CDVInvokedUrlCommand *)command;
 -(void)changeFrame:(CDVInvokedUrlCommand *)command;
