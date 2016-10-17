@@ -1,5 +1,4 @@
 
-
     var GPUMediaPlayer = function ()
     {
 
@@ -123,7 +122,7 @@
         }
 
         var params = {
-            stickerURL: options.stickerURL ? options.stickerURL : null,
+            stickerPath: options.stickerPath ? options.stickerPath : null,
             stickerID: options.stickerID ? options.stickerID : 0,
             stickerPosX: options.stickerPosX ? options.stickerPosX : 0,
             stickerPosY: options.stickerPosY ? options.stickerPosY : 0,
