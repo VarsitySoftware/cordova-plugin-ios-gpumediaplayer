@@ -1,4 +1,6 @@
-  var GPUMediaPlayer = function ()
+
+
+    var GPUMediaPlayer = function ()
     {
 
     };
@@ -36,6 +38,8 @@
 
             overlayEnabled: options.overlayEnabled ? options.overlayEnabled : 0,
             overlayURL: options.overlayURL ? options.overlayURL : null,
+
+            loop: options.loop ? options.loop : 0
         };
 
         return cordova.exec(success, fail, "GPUMediaPlayer", "start", [params]);
@@ -60,6 +64,20 @@
     GPUMediaPlayer.prototype.restart = function (success, fail, options)
     {
         return cordova.exec(success, fail, "GPUMediaPlayer", "restart", null);
+    };
+
+    GPUMediaPlayer.prototype.seek = function (success, fail, options)
+    {
+        if (!options) {
+            options = {};
+        }
+
+        var params = {           
+
+            seekTo: options.seekTo ? options.seekTo : 0
+        };
+
+        return cordova.exec(success, fail, "GPUMediaPlayer", "seek", [params]);        
     };
 
     GPUMediaPlayer.prototype.save = function (success, fail, options)
