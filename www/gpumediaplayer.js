@@ -1,5 +1,4 @@
 
-
     var GPUMediaPlayer = function ()
     {
 
@@ -64,6 +63,16 @@
     GPUMediaPlayer.prototype.restart = function (success, fail, options)
     {
         return cordova.exec(success, fail, "GPUMediaPlayer", "restart", null);
+    };
+
+    GPUMediaPlayer.prototype.hide = function (success, fail, options)
+    {
+        return cordova.exec(success, fail, "GPUMediaPlayer", "hide", null);
+    };
+
+    GPUMediaPlayer.prototype.show = function (success, fail, options)
+    {
+        return cordova.exec(success, fail, "GPUMediaPlayer", "show", null);
     };
 
     GPUMediaPlayer.prototype.seek = function (success, fail, options)
