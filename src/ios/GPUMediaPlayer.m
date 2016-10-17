@@ -586,7 +586,7 @@
 - (void) stop:(CDVInvokedUrlCommand *)command {
 	if (mediaFile.stop == NO)
 	{
-		[playbackTimer invalidate];
+		[playbackTimer invalidate]; 
         playbackTimer = nil;
 
 		mediaFile.stop = YES;				
@@ -600,7 +600,17 @@
 	[self.scrollView removeFromSuperview];
 	self.scrollView = nil;
  }
+
+ - (void) hide:(CDVInvokedUrlCommand *)command {	
+	
+	[self.scrollView setHidden:YES];	
+ }
  
+  - (void) show:(CDVInvokedUrlCommand *)command {	
+	
+	[self.scrollView setHidden:NO];	
+ }
+
  - (void) save:(CDVInvokedUrlCommand *)command { 
 	
 	////////////////////////////////////
@@ -1261,13 +1271,16 @@
 	int intTimeElapsed = (mediaFile.timeElapsed + 1);
 	mediaFile.timeElapsed = intTimeElapsed;
 
-	self.jsonResults[@"duration"] = [[NSNumber numberWithFloat:mediaFile.duration] stringValue];
-	self.jsonResults[@"timeElapsed"] = [[NSNumber numberWithFloat:mediaFile.timeElapsed] stringValue];	
+	if (mediaFile.timeElapsed <= mediaFile.duration)
+	{
+		self.jsonResults[@"duration"] = [[NSNumber numberWithFloat:mediaFile.duration] stringValue];
+		self.jsonResults[@"timeElapsed"] = [[NSNumber numberWithFloat:mediaFile.timeElapsed] stringValue];	
 
-	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+		self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
 
-	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
-	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
+		[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+		[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
+	}
 }
 
 -(void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
