@@ -618,6 +618,8 @@
 	saveFile = nil;
 
 	self.seekTo = 0;
+	self.mediaMask = nil;
+	self.captionLabel = nil;
  }
 
  - (void) hide:(CDVInvokedUrlCommand *)command {	
@@ -957,11 +959,26 @@
 		// SET VARS
 		/////////////////////////////////////////
 
+		//NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+		//NSString *documentsDirectory = [paths objectAtIndex:0];
+		//NSString *filepath = [documentsDirectory stringByAppendingPathComponent: @"images/1f600.png"];
+
+		//NSString *strStickerName = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/images/stickers/1f600.png"];		
+		//NSString *strStickerPath = [NSString stringWithFormat:@"file://%@", strStickerName];
+		
+		//NSString *strStickerPath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/images/stickers/1f600.png"];		
+
+		//NSLog(@"Filepath: %@ ", filepath);			
+		//NSLog(@"strStickerPath: %@", strStickerPath);			
+
+		//////////////////////////////////////
+
 		NSError* error = nil;
 
 		NSDictionary *options = [command.arguments objectAtIndex: 0];
   
-		NSString * strStickerURL = [options objectForKey:@"stickerURL"];
+		//NSString * strStickerURL = [options objectForKey:@"stickerURL"];
+		NSString * strStickerPath = [options objectForKey:@"stickerPath"];
 
 		int intStickerID = [[options objectForKey:@"stickerID"] integerValue];
 		int intStickerWidth = [[options objectForKey:@"stickerWidth"] integerValue];
@@ -972,22 +989,30 @@
 		self.currentTag = intStickerID;
 
 		///////////////////////////////////////// 
+		// GET STICKER 
+		/////////////////////////////////////////
+		
+		NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:strStickerPath];		
+		UIImage *stickerImage =  [UIImage imageWithContentsOfFile: strFilePath];
+
+		///////////////////////////////////////// 
 		// GET STICKER AS NSDATA
 		/////////////////////////////////////////
 		
-		NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:strStickerURL] options:NSDataReadingUncached error:&error];
-		if (error) {
-			NSLog(@"%@", [error localizedDescription]);			
-		} else {			
-			NSLog(@"Sticker of size %i has loaded successfully!", data.length);			
-		}
+		//NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:strStickerURL] options:NSDataReadingUncached error:&error];
+		//if (error) {
+			//NSLog(@"%@", [error localizedDescription]);			
+		//} else {			
+			//NSLog(@"Sticker of size %i has loaded successfully!", data.length);			
+		//}
 
 		///////////////////////////////////////// 
 		// CONVERT NSDATA TO UIIMAGE
 		/////////////////////////////////////////
 
-		UIImage *stickerImage = [UIImage imageWithData:data];
-		
+		//UIImage *stickerImage = [UIImage imageWithData:data];
+		//UIImage *stickerImage =  [UIImage imageWithContentsOfFile: strFilePath];
+
 		///////////////////////////////////////// 
 		// ADD UIIMAGE TO VIEW
 		/////////////////////////////////////////  
