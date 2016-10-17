@@ -30,6 +30,7 @@
 @property(readwrite, nonatomic) BOOL pause;
 @property(readwrite, nonatomic) BOOL stop;
 
+@property(readwrite, nonatomic) int timeElapsed;
 @property(readwrite, nonatomic) float currentTime;
 @property(readwrite, nonatomic) int currentTimeInSecs;
 @property(readwrite, nonatomic) float duration;
