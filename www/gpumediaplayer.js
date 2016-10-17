@@ -1,10 +1,3 @@
-cordova.define("cordova-plugin-ios-gpumediaplayer.GPUMediaPlayer", function(require, exports, module) {
-/*global cordova,window,console*/
-/**
- * A GPU Media Player plugin for Cordova
- * 
- * Developed by John Weaver for Varsity Software
- */
 
 
     var GPUMediaPlayer = function ()
@@ -218,5 +211,3 @@ cordova.define("cordova-plugin-ios-gpumediaplayer.GPUMediaPlayer", function(requ
     };
 
     window.gpuMediaPlayer = new GPUMediaPlayer();
-
-});
