@@ -135,6 +135,8 @@ This property is not key-value observable.
 -(void)stop:(CDVInvokedUrlCommand *)command;
 -(void)restart:(CDVInvokedUrlCommand *)command;
 -(void)save:(CDVInvokedUrlCommand *)command;
+-(void)hide:(CDVInvokedUrlCommand *)command;
+-(void)show:(CDVInvokedUrlCommand *)command; 
 
 -(void)begin; 
 
