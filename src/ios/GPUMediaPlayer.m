@@ -1088,7 +1088,7 @@
 		
 		NSString *strFontFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:strFontPath];
 				
-		//NSLog(@"Current %@", strFilePath);	
+		//NSLog(@"Current %@", strFontFilePath);	
 
 		//BOOL foundFile = [[NSFileManager defaultManager] fileExistsAtPath:strFontFilePath];
 		//NSAssert(foundFile, @"The font at: \"%@\" was not found.", strFilePath);
@@ -1102,7 +1102,24 @@
 		CFRelease(graphicsFont);
 	
 		UIFont *customFont = (__bridge UIFont *)smallFont;		
+		//UIFontPlus  *customFont = (__bridge UIFontPlus *)smallFont;				
+		//customFont.fontPath = strFontFilePath;
+		//customFont.fontPath = @"TESTING";
+		//[customFont setFontPath:@"TESTING"];
+		//[customFont setFontPath:strFontFilePath];
+		//[customFont test];
+
 		CFRelease(smallFont);
+
+		//UIFontPlus *test = [[UIFontPlus alloc] initWithFrame:CGRectMake(intLabelPosX, intLabelPosY, intLabelWidth, intLabelHeight)];		
+		
+		//UIFontPlus *test = [[UIFontPlus alloc] init];
+        //test.fontPath = strFontFilePath;
+		//test.font = customFont;
+
+		//UIFontPlus * test = (UIFontPlus*) customFont;
+		//test.fontPath = strFontFilePath;
+		//[test setFontPath:strFontFilePath];
 
 		///////////////////////////////////////// 
 		// SET CURRENT TAG 
@@ -1127,6 +1144,7 @@
 		
 		//textField.font = [UIFont fontWithName:strFilePath size:intFontSize];
 		textField.font = customFont;
+		textField.fontPath = strFontFilePath;
 
 		///////////////////////////////////////// 
 		// ADD PAN GESTURES TO VIEW 
@@ -1244,7 +1262,10 @@
 
 		if (intFontSize > 0)
 		{
-			NSString *strFontFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:strFontPath];		
+			UIFont *currentFont = (UIFont*)textField.font;
+
+			//NSString *strFontFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:strFontPath];		
+			NSString *strFontFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:textField.fontPath];		
 
 			CFURLRef fontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFontFilePath, kCFURLPOSIXPathStyle, false);;
 			CGDataProviderRef dataProvider = CGDataProviderCreateWithURL(fontURL);
@@ -1255,20 +1276,22 @@
 			CFRelease(graphicsFont);
 	
 			UIFont *customFont = (__bridge UIFont *)smallFont;		
+			//UIFontPlus *customFont = (__bridge UIFontPlus *)smallFont;		
+			//customFont.fontPath = strFontFilePath;
 			CFRelease(smallFont);
 
 			textField.font = customFont;
 
-			CGRect newFrame = textField.frame;			
-			newFrame.size = CGSizeMake(375, newFrame.size.height + 20);
-			textField.frame = newFrame;			
+			//CGRect newFrame = textField.frame;			
+			//newFrame.size = CGSizeMake(375, newFrame.size.height + 20);
+			//textField.frame = newFrame;			
 		}
 
 		///////////////////////////////////////// 
 		// RESIZE TEXT FIELD
 		/////////////////////////////////////////
 
-		//[self resizeTextField: textField];		
+		[self resizeTextField: textField];		
  }
 
  - (void) updateSticker:(CDVInvokedUrlCommand *)command { 
@@ -3763,12 +3786,25 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
 @synthesize pressing = _pressing;
 //@synthesize longPress = _longPress;
 @synthesize longPress = _longPress;    // Optional for Xcode 4.4+
+@synthesize fontPath = _fontPath;    // Optional for Xcode 4.4+
 
 - (BOOL)isLongPress {
     return _longPress;
 }
 - (void)setLongPress:(BOOL)newValue {
     _longPress = newValue;
+}
+
+//Setter method
+- (void)setFontPath:(NSString *)newValue {
+	NSLog(@"Setting fontPath to: %@", newValue);    
+	_fontPath = newValue;
+}
+
+//Getter method
+- (NSString *)fontPath {
+	NSLog(@"Returning fontPath: %@", _fontPath);
+    return _fontPath;
 }
 
 - (void)longPressed_OLD;
@@ -3815,3 +3851,26 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
 }
 
 @end
+
+//////////////////////////////
+
+
+//@implementation UIFontPlus
+//@synthesize fontPath = _fontPath;    // Optional for Xcode 4.4+
+
+//Setter method
+//- (void)setFontPath:(NSString *)newValue {
+	//NSLog(@"Setting fontPath to: %@", newValue);
+    //_fontPath = [newValue uppercaseString];
+//	_fontPath = newValue;
+//}
+
+//Getter method
+//- (NSString *)fontPath {
+	//NSLog(@"Returning fontPath: %@", _fontPath);
+
+  //  return _fontPath;
+//}
+
+
+//@end
