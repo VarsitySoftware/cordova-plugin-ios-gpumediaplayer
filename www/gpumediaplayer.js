@@ -1,5 +1,4 @@
 
-
     var GPUMediaPlayer = function ()
     {
 
@@ -164,7 +163,7 @@
             //labelColor: options.labelColor ? options.labelColor : null,
             //labelSize: options.labelSize ? options.labelSize : 0,
             fontColor: options.fontColor ? options.fontColor : null,
-            fontPath: options.fontPath ? options.fontPath : null,
+            //fontPath: options.fontPath ? options.fontPath : null,
             fontSize: options.fontSize ? options.fontSize : 0
         };
 
