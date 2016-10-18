@@ -34,6 +34,8 @@
 	self.callbackId = command.callbackId;
 	options = [command.arguments objectAtIndex: 0];
 
+	self.restart = NO;
+
 	[self begin];
 }
 
@@ -232,223 +234,228 @@
 	// USE FRAME?
 	////////////////////////////////////
 	
-	if (intFrameEnabled == 1 || self.mediaFrameEnabled == YES)  //FRAME
+	if (self.restart == NO)
 	{
-		self.mediaFrameEnabled = YES;
-
-		if (self.frameView != nil)
+		if (intFrameEnabled == 1 || self.mediaFrameEnabled == YES)  //FRAME
 		{
-			////////////////////////////////////
-			// ADD FRAME VIEW TO MASK
-			////////////////////////////////////
-		
-			[self.mediaMask addSubview:self.frameView];
-			self.mediaMaskEnabled = YES;
-		}		
-		else
-		{
-			////////////////////////////////////
-			// CREATE CUSTOM SHADER STRING
-			////////////////////////////////////
+			self.mediaFrameEnabled = YES;
 
-			NSString *const kShaderString = SHADER_STRING
-			(	
-				 precision mediump float;
+			if (self.frameView != nil)
+			{
+				////////////////////////////////////
+				// ADD FRAME VIEW TO MASK
+				////////////////////////////////////
+		
+				[self.mediaMask addSubview:self.frameView];
+				self.mediaMaskEnabled = YES;
+			}		
+			else
+			{
+				////////////////////////////////////
+				// CREATE CUSTOM SHADER STRING
+				////////////////////////////////////
+
+				NSString *const kShaderString = SHADER_STRING
+				(	
+					 precision mediump float;
  
-				 varying highp vec2 textureCoordinate;
-				 varying highp vec2 textureCoordinate2;
+					 varying highp vec2 textureCoordinate;
+					 varying highp vec2 textureCoordinate2;
  
-				 uniform sampler2D inputImageTexture;
-				 uniform sampler2D inputImageTexture2; 
+					 uniform sampler2D inputImageTexture;
+					 uniform sampler2D inputImageTexture2; 
  
-				 void main() 
-				 { 
-					vec4 shape = texture2D(inputImageTexture, textureCoordinate);
-					vec4 theme = texture2D(inputImageTexture2, textureCoordinate2);
+					 void main() 
+					 { 
+						vec4 shape = texture2D(inputImageTexture, textureCoordinate);
+						vec4 theme = texture2D(inputImageTexture2, textureCoordinate2);
 
-					gl_FragColor = shape;		
+						gl_FragColor = shape;		
 		
-					if (shape.a <= 0.2) 
-					{ 					
-						gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-					}
-					else if (shape.x <= 0.2) 
-					{ 					
-						gl_FragColor = theme; 
-					}
-					else if (shape.x >= 0.8) 
-					{
-						gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);		
-					}   
-				 }
-			);  
+						if (shape.a <= 0.2) 
+						{ 					
+							gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+						}
+						else if (shape.x <= 0.2) 
+						{ 					
+							gl_FragColor = theme; 
+						}
+						else if (shape.x >= 0.8) 
+						{
+							gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);		
+						}   
+					 }
+				);  
 
-			////////////////////////////////////
-			// CREATE A TWO INPUT FILTER USING THE CUSTOM SHADER STRING
-			////////////////////////////////////
+				////////////////////////////////////
+				// CREATE A TWO INPUT FILTER USING THE CUSTOM SHADER STRING
+				////////////////////////////////////
 
-			GPUImageTwoInputFilter * frameFilter = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kShaderString];
+				GPUImageTwoInputFilter * frameFilter = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kShaderString];
 
-			////////////////////////////////////
-			// GET SHAPE FILE FROM URL as NSDATA
-			////////////////////////////////////
+				////////////////////////////////////
+				// GET SHAPE FILE FROM URL as NSDATA
+				////////////////////////////////////
 		
-			NSData* dataShape = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameShapeURL] options:NSDataReadingUncached error:&error];
-			if (error) {
-				NSLog(@"%@", [error localizedDescription]);			
-			} else {
-				NSLog(@"Shape of size %i has loaded successfully!", dataShape.length);
-				//NSLog(@"length: %i", dataShape.length); 
-			}
+				NSData* dataShape = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameShapeURL] options:NSDataReadingUncached error:&error];
+				if (error) {
+					NSLog(@"%@", [error localizedDescription]);			
+				} else {
+					NSLog(@"Shape of size %i has loaded successfully!", dataShape.length);
+					//NSLog(@"length: %i", dataShape.length); 
+				}
 
-			////////////////////////////////////
-			// CONVERT NSDATA TO UIImage
-			////////////////////////////////////
+				////////////////////////////////////
+				// CONVERT NSDATA TO UIImage
+				////////////////////////////////////
 
-			UIImage *shapeImage = [UIImage imageWithData:dataShape];
+				UIImage *shapeImage = [UIImage imageWithData:dataShape];
 		
-			////////////////////////////////////
-			// CONVERT UIImage to JPEG
-			////////////////////////////////////
+				////////////////////////////////////
+				// CONVERT UIImage to JPEG
+				////////////////////////////////////
 
-			NSData *jpgDataHighestCompressionQuality = UIImageJPEGRepresentation(shapeImage, 1.0);
-			shapeImage = [UIImage imageWithData:jpgDataHighestCompressionQuality];
+				NSData *jpgDataHighestCompressionQuality = UIImageJPEGRepresentation(shapeImage, 1.0);
+				shapeImage = [UIImage imageWithData:jpgDataHighestCompressionQuality];
 
-			////////////////////////////////////
-			// MAKE WHITE COLOR TRANSPARENT IN SHAPE
-			// THIS IS NECESSARY WHEN SAVING MASK
-			//http://stackoverflow.com/questions/19443311/how-to-make-one-colour-transparent-in-uiimage
-			// WTF is colorMasking var?!?
-			// element #1 is R-MIN, element #2 is R-MAX, element #3 is G-MIN, element #4 is G-MAX, element #5 is B-MIN, element #6 is B-MAX
-			////////////////////////////////////
+				////////////////////////////////////
+				// MAKE WHITE COLOR TRANSPARENT IN SHAPE
+				// THIS IS NECESSARY WHEN SAVING MASK
+				//http://stackoverflow.com/questions/19443311/how-to-make-one-colour-transparent-in-uiimage
+				// WTF is colorMasking var?!?
+				// element #1 is R-MIN, element #2 is R-MAX, element #3 is G-MIN, element #4 is G-MAX, element #5 is B-MIN, element #6 is B-MAX
+				////////////////////////////////////
 
-			shapeImage = [self changeWhiteColorTransparent: shapeImage];
+				shapeImage = [self changeWhiteColorTransparent: shapeImage];
 
-			////////////////////////////////////
-			// GET THEME FILE FROM URL as NSDATA
-			////////////////////////////////////
+				////////////////////////////////////
+				// GET THEME FILE FROM URL as NSDATA
+				////////////////////////////////////
 
-			NSData* dataTheme = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameThemeURL] options:NSDataReadingUncached error:&error];
-			if (error) {
-				NSLog(@"%@", [error localizedDescription]);			
-			} else {
-				NSLog(@"Theme of size %i has loaded successfully!", dataTheme.length);			
-			}
+				NSData* dataTheme = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameThemeURL] options:NSDataReadingUncached error:&error];
+				if (error) {
+					NSLog(@"%@", [error localizedDescription]);			
+				} else {
+					NSLog(@"Theme of size %i has loaded successfully!", dataTheme.length);			
+				}
 
-			////////////////////////////////////
-			// CONVERT NSDATA TO UIImage
-			////////////////////////////////////
+				////////////////////////////////////
+				// CONVERT NSDATA TO UIImage
+				////////////////////////////////////
 
-			UIImage *themeImage = [UIImage imageWithData:dataTheme]; 
+				UIImage *themeImage = [UIImage imageWithData:dataTheme]; 
 
-			////////////////////////////////////
-			// CREATE GPUImagePictures from SHAPE & THEME
-			////////////////////////////////////
+				////////////////////////////////////
+				// CREATE GPUImagePictures from SHAPE & THEME
+				////////////////////////////////////
 
-			GPUImagePicture *shapePicture = [[GPUImagePicture alloc] initWithImage:shapeImage smoothlyScaleOutput:YES];
-			GPUImagePicture *themePicture = [[GPUImagePicture alloc] initWithImage:themeImage smoothlyScaleOutput:YES];
+				GPUImagePicture *shapePicture = [[GPUImagePicture alloc] initWithImage:shapeImage smoothlyScaleOutput:YES];
+				GPUImagePicture *themePicture = [[GPUImagePicture alloc] initWithImage:themeImage smoothlyScaleOutput:YES];
 		 
-			////////////////////////////////////
-			// ADD SHAPE & THEME TO FRAME FILTER & PROCESS
-			////////////////////////////////////
+				////////////////////////////////////
+				// ADD SHAPE & THEME TO FRAME FILTER & PROCESS
+				////////////////////////////////////
 
-			[shapePicture addTarget:frameFilter];	 
-			[themePicture addTarget:frameFilter];		 
+				[shapePicture addTarget:frameFilter];	 
+				[themePicture addTarget:frameFilter];		 
 
-			[frameFilter useNextFrameForImageCapture];
+				[frameFilter useNextFrameForImageCapture];
 
-			[shapePicture processImage];
-			[themePicture processImage]; 
+				[shapePicture processImage];
+				[themePicture processImage]; 
 
-			////////////////////////////////////
-			// GET COMBINED SHAPE & THEME IMAGE
-			////////////////////////////////////
+				////////////////////////////////////
+				// GET COMBINED SHAPE & THEME IMAGE
+				////////////////////////////////////
 
-			UIImage *frameImage = [frameFilter imageFromCurrentFramebuffer];
+				UIImage *frameImage = [frameFilter imageFromCurrentFramebuffer];
 
-			////////////////////////////////////
-			// CREATE FRAME VIEW
-			////////////////////////////////////
+				////////////////////////////////////
+				// CREATE FRAME VIEW
+				////////////////////////////////////
 
-			self.frameView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
+				self.frameView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
 		
-			////////////////////////////////////
-			// ADD IMAGE TO FRAME VIEW
-			////////////////////////////////////
+				////////////////////////////////////
+				// ADD IMAGE TO FRAME VIEW
+				////////////////////////////////////
 		 
-			[self.frameView setImage:frameImage];		
+				[self.frameView setImage:frameImage];		
 
-			////////////////////////////////////
-			// ADD FRAME VIEW TO MASK
-			////////////////////////////////////
+				////////////////////////////////////
+				// ADD FRAME VIEW TO MASK
+				////////////////////////////////////
 		
-			[self.mediaMask addSubview:self.frameView];
-			self.mediaMaskEnabled = YES;
+				[self.mediaMask addSubview:self.frameView];
+				self.mediaMaskEnabled = YES;
+			}
 		}
 	}
-
 	////////////////////////////////////
 	// ADD CAPTION?
 	////////////////////////////////////
+	if (self.restart == NO)
+	{
+		if (intCaptionEnabled == 1)
+		{	
+			//https://www.cocoanetics.com/2014/06/object-overlay-on-video/
 
-	if (intCaptionEnabled == 1)
-	{	
-	    //https://www.cocoanetics.com/2014/06/object-overlay-on-video/
+			int intCaptionHeight = intCaptionFontSize + 10;
 
-		int intCaptionHeight = intCaptionFontSize + 10;
+			self.captionLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, intMediaHeight - intCaptionHeight, intMediaWidth, intCaptionHeight)];
+			self.captionLabel.text = strCaptionText;		
+			self.captionLabel.font = [UIFont systemFontOfSize:intCaptionFontSize];
+			self.captionLabel.textColor = [UIColor whiteColor];
+			self.captionLabel.tag = 1;
+			self.captionLabel.hidden = NO;
+			self.captionLabel.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5f];
+			self.captionLabel.textAlignment = UITextAlignmentCenter;
 
-		self.captionLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, intMediaHeight - intCaptionHeight, intMediaWidth, intCaptionHeight)];
-		self.captionLabel.text = strCaptionText;		
-		self.captionLabel.font = [UIFont systemFontOfSize:intCaptionFontSize];
-		self.captionLabel.textColor = [UIColor whiteColor];
-		self.captionLabel.tag = 1;
-		self.captionLabel.hidden = NO;
-		self.captionLabel.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5f];
-		self.captionLabel.textAlignment = UITextAlignmentCenter;
-
-		[self.mediaMask addSubview:self.captionLabel];
-		self.mediaMaskEnabled = YES;
-	} 
+			[self.mediaMask addSubview:self.captionLabel];
+			self.mediaMaskEnabled = YES;
+		} 
+	}
 
 	////////////////////////////////////
 	// ADD OVERLAY?
 	////////////////////////////////////
+	if (self.restart == NO)
+	{
+		if (intOverlayEnabled == 1)
+		{	
+			NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:strOverlayURL] options:NSDataReadingUncached error:&error];
+			if (error) {
+				NSLog(@"%@", [error localizedDescription]);			
+			} else {
+				NSLog(@"Overlay of size %i has loaded successfully!", data.length);			
+			}
 
-	if (intOverlayEnabled == 1)
-	{	
-		NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:strOverlayURL] options:NSDataReadingUncached error:&error];
-		if (error) {
-			NSLog(@"%@", [error localizedDescription]);			
-		} else {
-			NSLog(@"Overlay of size %i has loaded successfully!", data.length);			
-		}
+			////////////////////////////////////
+			// CREATE IMAGE from NSDATA
+			////////////////////////////////////
 
-		////////////////////////////////////
-		// CREATE IMAGE from NSDATA
-		////////////////////////////////////
+			UIImage *overlayImage = [UIImage imageWithData:data];
 
-		UIImage *overlayImage = [UIImage imageWithData:data];
-
-		////////////////////////////////////
-		// CREATE OVERLAY VIEW
-		////////////////////////////////////
+			////////////////////////////////////
+			// CREATE OVERLAY VIEW
+			////////////////////////////////////
 		
-		self.overlayView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
+			self.overlayView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
 
-		////////////////////////////////////
-		// ADD IMAGE TO VIEW
-		////////////////////////////////////		
+			////////////////////////////////////
+			// ADD IMAGE TO VIEW
+			////////////////////////////////////		
 		
-		[self.overlayView setImage:overlayImage];
+			[self.overlayView setImage:overlayImage];
 
-		////////////////////////////////////
-		// ADD VIEW TO MASK
-		////////////////////////////////////		
+			////////////////////////////////////
+			// ADD VIEW TO MASK
+			////////////////////////////////////		
 
-		[self.mediaMask addSubview:self.overlayView];
-		self.mediaMaskEnabled = YES;
-	}	
-
+			[self.mediaMask addSubview:self.overlayView];
+			self.mediaMaskEnabled = YES;
+		}	
+	}
 	////////////////////////////////////
 	// IS LANDSCAPE?
 	////////////////////////////////////
@@ -534,6 +541,7 @@
  - (void) restart:(CDVInvokedUrlCommand *)command { 	
 	
 	self.seekTo = 0;
+	self.restart = YES;
 	[self stop:command];
 	[self begin];
  }
