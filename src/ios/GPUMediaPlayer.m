@@ -1235,41 +1235,41 @@
 		[self resizeTextField: textField];		
  }
 
- - (void) updateSticker:(CDVInvokedUrlCommand *)command {
-
+ - (void) updateSticker:(CDVInvokedUrlCommand *)command { 
+		
 		///////////////////////////////////////// 
-		// SET VARS
+		// SET VARS 
 		/////////////////////////////////////////	
 
-		NSDictionary *options = [command.arguments objectAtIndex: 0]; 
-  
+		NSDictionary *options = [command.arguments objectAtIndex: 0];   
+		
 		//int intStickerID = [[options objectForKey:@"stickerID"] integerValue];
 		int intStickerSize = [[options objectForKey:@"stickerSize"] integerValue];
 		NSString *strStickerColor = [options objectForKey:@"stickerColor"];
 
 		int intStickerID = self.currentTag;
 
-		/////////////////////////////////////////  
-		// GET REFERENCE TO TEXT FIELD
-		/////////////////////////////////////////
+		/////////////////////////////////////////   
+		// GET REFERENCE TO TEXT FIELD 
+		///////////////////////////////////////// 
 
 		UIImageView * imageView = (UIImageView*)[self.mediaMask viewWithTag:intStickerID];
 
 		///////////////////////////////////////// 
 		// SET COLOR
-		/////////////////////////////////////////
-
-		if (strStickerColor == nil)
+		///////////////////////////////////////// 
+		
+		if (strStickerColor == [NSNull null])		 		
 		{
 			imageView.backgroundColor =  [UIColor clearColor];
-			imageView.opaque = NO;
+			imageView.opaque = NO;			
 		}
 		else
 		{
 			UIColor *color = [self getUIColorObjectFromHexString:strStickerColor alpha:1.0];				
 			imageView.backgroundColor = color;
 		}
-
+		
 		///////////////////////////////////////// 
 		// SET SIZE
 		/////////////////////////////////////////
