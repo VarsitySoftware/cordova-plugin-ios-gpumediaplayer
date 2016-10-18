@@ -1,4 +1,5 @@
 
+
     var GPUMediaPlayer = function ()
     {
 
@@ -160,8 +161,11 @@
 
         var params = {
             //labelID: options.labelID ? options.labelID : 0,
-            labelColor: options.labelColor ? options.labelColor : null,
-            labelSize: options.labelSize ? options.labelSize : 0,
+            //labelColor: options.labelColor ? options.labelColor : null,
+            //labelSize: options.labelSize ? options.labelSize : 0,
+            fontColor: options.fontColor ? options.fontColor : null,
+            fontPath: options.fontPath ? options.fontPath : null,
+            fontSize: options.fontSize ? options.fontSize : 0
         };
 
         return cordova.exec(success, fail, "GPUMediaPlayer", "updateLabel", [params]);
