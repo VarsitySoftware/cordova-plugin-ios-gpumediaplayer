@@ -1086,14 +1086,14 @@
 		// https://github.com/nin9tyfour/UIFont-TTF
 		/////////////////////////////////////////
 		
-		NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:strFontPath];
+		NSString *strFontFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:strFontPath];
 				
 		//NSLog(@"Current %@", strFilePath);	
 
-		BOOL foundFile = [[NSFileManager defaultManager] fileExistsAtPath:strFilePath];
+		//BOOL foundFile = [[NSFileManager defaultManager] fileExistsAtPath:strFontFilePath];
 		//NSAssert(foundFile, @"The font at: \"%@\" was not found.", strFilePath);
 
-		CFURLRef fontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFilePath, kCFURLPOSIXPathStyle, false);;
+		CFURLRef fontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFontFilePath, kCFURLPOSIXPathStyle, false);;
 		CGDataProviderRef dataProvider = CGDataProviderCreateWithURL(fontURL);
 		CFRelease(fontURL);
 		CGFontRef graphicsFont = CGFontCreateWithDataProvider(dataProvider);
@@ -1211,8 +1211,9 @@
 
 		NSDictionary *options = [command.arguments objectAtIndex: 0];
   
-		int intLabelSize = [[options objectForKey:@"labelSize"] integerValue];
-		NSString *strLabelColor = [options objectForKey:@"labelColor"];
+		int intFontSize = [[options objectForKey:@"fontSize"] integerValue];
+		NSString *strLabelColor = [options objectForKey:@"fontColor"];
+		NSString * strFontPath = [options objectForKey:@"fontPath"];
 
 		//int intLabelID = self.currentTextFieldTag;
 		int intLabelID = self.currentTag;
@@ -1221,26 +1222,53 @@
 		// GET REFERENCE TO TEXT FIELD
 		/////////////////////////////////////////
 
-		UITextField * textField = (UITextField*)[self.mediaMask viewWithTag:intLabelID];
+		textField = (UITextFieldPlus*)[self.mediaMask viewWithTag:intLabelID];
 
 		///////////////////////////////////////// 
 		// SET COLOR
-		/////////////////////////////////////////
+		///////////////////////////////////////// 
 
-		UIColor *color = [self getUIColorObjectFromHexString:strLabelColor alpha:1.0];
-		[textField setTextColor:color];
+		if (strLabelColor == [NSNull null])		 		
+		{
+			[textField setTextColor: [UIColor whiteColor]];
+		}
+		else
+		{
+			UIColor *color = [self getUIColorObjectFromHexString:strLabelColor alpha:1.0];
+			[textField setTextColor:color];
+		}		
 
 		///////////////////////////////////////// 
 		// SET FONT SIZE
 		/////////////////////////////////////////
 
-		[textField setFont:[UIFont boldSystemFontOfSize:intLabelSize]];
+		if (intFontSize > 0)
+		{
+			NSString *strFontFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:strFontPath];		
+
+			CFURLRef fontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFontFilePath, kCFURLPOSIXPathStyle, false);;
+			CGDataProviderRef dataProvider = CGDataProviderCreateWithURL(fontURL);
+			CFRelease(fontURL);
+			CGFontRef graphicsFont = CGFontCreateWithDataProvider(dataProvider);
+			CFRelease(dataProvider);
+			CTFontRef smallFont = CTFontCreateWithGraphicsFont(graphicsFont, intFontSize, NULL, NULL);
+			CFRelease(graphicsFont);
+	
+			UIFont *customFont = (__bridge UIFont *)smallFont;		
+			CFRelease(smallFont);
+
+			textField.font = customFont;
+
+			CGRect newFrame = textField.frame;			
+			newFrame.size = CGSizeMake(375, newFrame.size.height + 20);
+			textField.frame = newFrame;			
+		}
 
 		///////////////////////////////////////// 
 		// RESIZE TEXT FIELD
 		/////////////////////////////////////////
 
-		[self resizeTextField: textField];		
+		//[self resizeTextField: textField];		
  }
 
  - (void) updateSticker:(CDVInvokedUrlCommand *)command { 
@@ -1369,7 +1397,7 @@
 -(void)dismissKeyboard {
        
 	//UITextField* textField = [self.rootView viewWithTag:(self.currentTextFieldTag)];
-	UITextField* textField = [self.rootView viewWithTag:(self.currentTag)];
+	UITextFieldPlus* textField = [self.rootView viewWithTag:(self.currentTag)];
 
 	[self resizeTextField: textField];
 	[self.rootView endEditing:YES];
@@ -1536,7 +1564,9 @@
 		[NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(didLongPress:) userInfo:nil repeats:NO];
 
 		CGRect newFrame = textField.frame;
-		newFrame.size = CGSizeMake(375, newFrame.size.height);
+		//newFrame.size = CGSizeMake(375, newFrame.size.height);
+		newFrame.size = CGSizeMake(375, newFrame.size.height + 20);
+		//newFrame.size = CGSizeMake(375, 150);
 		textField.frame = newFrame;
 		
 		self.currentTag = textField.tag;
@@ -1590,7 +1620,7 @@
 
  }
 
- - (BOOL)textFieldShouldReturn:(UITextField *)textField {
+ - (BOOL)textFieldShouldReturn:(UITextFieldPlus *)textField {
 	
 	[self resizeTextField: textField];
     [textField resignFirstResponder];
@@ -1598,10 +1628,9 @@
     return NO;
  }
 
- - (void) resizeTextField:(UITextField*)textField
+ - (void) resizeTextField:(UITextFieldPlus*)textField
 {
 	// http://stackoverflow.com/questions/50467/how-do-i-size-a-uitextview-to-its-content
-
 
 	///////////////////////////////////////////////////
 
