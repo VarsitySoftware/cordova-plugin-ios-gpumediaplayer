@@ -1259,19 +1259,30 @@
 		// SET COLOR
 		/////////////////////////////////////////
 
-		UIColor *color = [self getUIColorObjectFromHexString:strStickerColor alpha:1.0];				
-		imageView.backgroundColor = color;
+		if (strStickerColor == nil)
+		{
+			imageView.backgroundColor =  [UIColor clearColor];
+			imageView.opaque = NO;
+		}
+		else
+		{
+			UIColor *color = [self getUIColorObjectFromHexString:strStickerColor alpha:1.0];				
+			imageView.backgroundColor = color;
+		}
 
 		///////////////////////////////////////// 
 		// SET SIZE
 		/////////////////////////////////////////
 
-		imageView.contentMode = UIViewContentModeScaleToFill;
+		if (intStickerSize > 0)
+		{
+			imageView.contentMode = UIViewContentModeScaleToFill;
 
-		CGRect frameRect = imageView.frame;
-		frameRect.size.height = intStickerSize + 20; // <-- Specify the height you want here.
-		frameRect.size.width = intStickerSize + 20; // <-- Specify the height you want here.
-		imageView.frame = frameRect;		
+			CGRect frameRect = imageView.frame;
+			frameRect.size.height = intStickerSize + 20; // <-- Specify the height you want here.
+			frameRect.size.width = intStickerSize + 20; // <-- Specify the height you want here.
+			imageView.frame = frameRect;		
+		}
  }
 
  - (void) deleteSticker:(CDVInvokedUrlCommand *)command {
