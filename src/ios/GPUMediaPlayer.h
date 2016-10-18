@@ -11,6 +11,13 @@
 #import <GPUImage/GPUImageContext.h>
 #import <GPUImage/GPUImageOutput.h>
 
+@interface UITextFieldPlus : UITextField
+@property(assign, nonatomic) BOOL pressing; 
+//@property(readwrite, nonatomic) BOOL longPress;
+@property (getter = isLongPress) BOOL longPress;
+-(void) longPressed_OLD;
+@end
+
 /** Protocol for getting Movie played callback.
 */
 @protocol GPUImageMoviePlusDelegate <NSObject>
@@ -96,10 +103,13 @@ This property is not key-value observable.
 	GPUImageMovie *saveFile;
 	NSTimer * playbackTimer;
 	NSTimer *saveTimer; 
-	NSDictionary *options;
+	NSDictionary *options;	
+	UITextFieldPlus *textField;
 }
 
 @property (copy)NSString* callbackId;
+@property (copy)NSString* callbackIdAddSticker;
+@property (copy)NSString* callbackIdAddLabel;
 
 @property(readwrite, nonatomic) BOOL loop;
 
