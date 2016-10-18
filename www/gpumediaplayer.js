@@ -168,12 +168,8 @@
     };
 
     GPUMediaPlayer.prototype.deleteLabel = function (success, fail, options)
-    {
-        if (!options) {
-            options = {};
-        }
-
-        return cordova.exec(success, fail, "GPUMediaPlayer", "deleteLabel", [params]);
+    {      
+        return cordova.exec(success, fail, "GPUMediaPlayer", "deleteLabel", null);
     };
 
     GPUMediaPlayer.prototype.updateSticker = function (success, fail, options)
@@ -192,12 +188,8 @@
     };
 
     GPUMediaPlayer.prototype.deleteSticker = function (success, fail, options)
-    {
-        if (!options) {
-            options = {};
-        }
-
-        return cordova.exec(success, fail, "GPUMediaPlayer", "deleteSticker", [params]);
+    {       
+        return cordova.exec(success, fail, "GPUMediaPlayer", "deleteSticker", null);
     };
 
     GPUMediaPlayer.prototype.changeFilter = function (success, fail, options)
