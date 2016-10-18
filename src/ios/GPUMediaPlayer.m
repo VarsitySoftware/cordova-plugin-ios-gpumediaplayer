@@ -1231,7 +1231,7 @@
   
 		int intFontSize = [[options objectForKey:@"fontSize"] integerValue];
 		NSString *strLabelColor = [options objectForKey:@"fontColor"];
-		NSString * strFontPath = [options objectForKey:@"fontPath"];
+		//NSString * strFontPath = [options objectForKey:@"fontPath"];
 
 		//int intLabelID = self.currentTextFieldTag;
 		int intLabelID = self.currentTag;
