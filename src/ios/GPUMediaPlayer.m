@@ -20,6 +20,7 @@
 #import <UIKit/UIKit.h>
 
 #import <Photos/Photos.h>  
+#import <CoreText/CoreText.h>
 
 @implementation GPUMediaPlayer  
 @synthesize callbackId;
@@ -537,9 +538,6 @@
 	[self begin];
  }
 
-
-
-
  - (void) seek:(CDVInvokedUrlCommand *)command {
 	
 	////////////////////////////	
@@ -973,6 +971,8 @@
 
 		//////////////////////////////////////
 
+		self.callbackIdAddSticker = command.callbackId;
+
 		NSError* error = nil;
 
 		NSDictionary *options = [command.arguments objectAtIndex: 0];
@@ -1028,13 +1028,22 @@
 		[self addLimitedPanGesturesToView:stickerView];
 
 		///////////////////////////////////////// 
+		// ADD TAP GESTURE (FOR EDITING)
+		///////////////////////////////////////// 
+
+		UITapGestureRecognizer  *tapGestureRecognizer = [[UITapGestureRecognizer  alloc] init];
+		[tapGestureRecognizer addTarget:self action:@selector(stickerTapped:)];
+		tapGestureRecognizer.delegate = self;
+		[stickerView addGestureRecognizer: tapGestureRecognizer];
+
+		///////////////////////////////////////// 
 		// ADD LONG PRESS GESTURE (FOR DELETING)
 		/////////////////////////////////////////
 		
-		UILongPressGestureRecognizer *gestureRecognizer = [[UILongPressGestureRecognizer alloc] init];
-		[gestureRecognizer addTarget:self action:@selector(imgLongPressed:)];
-		gestureRecognizer.delegate = self;
-		[stickerView addGestureRecognizer: gestureRecognizer];
+		UILongPressGestureRecognizer *longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] init];
+		[longPressGestureRecognizer addTarget:self action:@selector(stickerLongPressed:)];
+		longPressGestureRecognizer.delegate = self;
+		[stickerView addGestureRecognizer: longPressGestureRecognizer];
 		
 		///////////////////////////////////////// 
 		// ADD VIEW TO MASK
@@ -1050,6 +1059,8 @@
 		// SET VARS
 		/////////////////////////////////////////
 		
+		self.callbackIdAddLabel = command.callbackId;
+
 		NSDictionary *options = [command.arguments objectAtIndex: 0];  
   
 		int intLabelID = [[options objectForKey:@"labelID"] integerValue]; 
@@ -1059,14 +1070,44 @@
 		int intLabelPosX = [[options objectForKey:@"labelPosX"] integerValue];
 		int intLabelPosY = [[options objectForKey:@"labelPosY"] integerValue];
 
-		//self.currentTextFieldTag = intLabelID;
+		NSString * strFontPath = [options objectForKey:@"fontPath"];
+		int intFontSize = [[options objectForKey:@"fontSize"] integerValue];
+		
+		///////////////////////////////////////// 
+		// SET CUSTOM FONT FILE 
+		// https://github.com/nin9tyfour/UIFont-TTF
+		/////////////////////////////////////////
+		
+		NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:strFontPath];
+				
+		//NSLog(@"Current %@", strFilePath);	
+
+		BOOL foundFile = [[NSFileManager defaultManager] fileExistsAtPath:strFilePath];
+		//NSAssert(foundFile, @"The font at: \"%@\" was not found.", strFilePath);
+
+		CFURLRef fontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFilePath, kCFURLPOSIXPathStyle, false);;
+		CGDataProviderRef dataProvider = CGDataProviderCreateWithURL(fontURL);
+		CFRelease(fontURL);
+		CGFontRef graphicsFont = CGFontCreateWithDataProvider(dataProvider);
+		CFRelease(dataProvider);
+		CTFontRef smallFont = CTFontCreateWithGraphicsFont(graphicsFont, intFontSize, NULL, NULL);
+		CFRelease(graphicsFont);
+	
+		UIFont *customFont = (__bridge UIFont *)smallFont;		
+		CFRelease(smallFont);
+
+		///////////////////////////////////////// 
+		// SET CURRENT TAG 
+		/////////////////////////////////////////
+
 		self.currentTag = intLabelID;
 
 		///////////////////////////////////////// 
 		// CREATE TEXT FIELD
 		/////////////////////////////////////////
 
-		UITextField *textField = [[UITextField alloc] initWithFrame:CGRectMake(intLabelPosX, intLabelPosY, intLabelWidth, intLabelHeight)];		
+		//UITextField *textField = [[UITextField alloc] initWithFrame:CGRectMake(intLabelPosX, intLabelPosY, intLabelWidth, intLabelHeight)];		
+		textField = [[UITextFieldPlus alloc] initWithFrame:CGRectMake(intLabelPosX, intLabelPosY, intLabelWidth, intLabelHeight)];		
 		textField.borderStyle = UITextBorderStyleNone; 
 		textField.textAlignment = UITextAlignmentCenter;
 		textField.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
@@ -1074,8 +1115,11 @@
 		[textField setTextColor:[UIColor whiteColor]];
 		textField.tintColor = [UIColor whiteColor];
 		textField.tag = intLabelID;
-		textField.delegate = self;
+		textField.delegate = self; 
 		
+		//textField.font = [UIFont fontWithName:strFilePath size:intFontSize];
+		textField.font = customFont;
+
 		///////////////////////////////////////// 
 		// ADD PAN GESTURES TO VIEW 
 		/////////////////////////////////////////
@@ -1083,13 +1127,42 @@
 		[self addLimitedPanGesturesToView:textField];
 
 		///////////////////////////////////////// 
+		// ADD TAP GESTURE (FOR EDITING)
+		///////////////////////////////////////// 
+
+		//UITapGestureRecognizer  *tapGestureRecognizer = [[UITapGestureRecognizer alloc] init];
+		//[tapGestureRecognizer addTarget:self action:@selector(labelTapped:)];
+		//tapGestureRecognizer.delegate = self;
+		//[textField addGestureRecognizer: tapGestureRecognizer];
+
+		//[textField addTarget:self action:@selector(labelTapped:) forControlEvents:UIControlEventEditingDidBegin];
+
+		///////////////////////////////////////// 
 		// ADD LONG PRESS GESTURE (FOR DELETING)
 		/////////////////////////////////////////
 
-		UILongPressGestureRecognizer *pressGestureRecognizer = [[UILongPressGestureRecognizer alloc] init];
-		[pressGestureRecognizer addTarget:self action:@selector(labelLongPressed:)];
-		pressGestureRecognizer.delegate = self;
-		[textField addGestureRecognizer: pressGestureRecognizer];
+		//BOOL isLongPress = NO;
+		//for (UIGestureRecognizer *recognizer in textField.gestureRecognizers) {
+			//if ([recognizer isKindOfClass:[UILongPressGestureRecognizer class]]) {
+			//	if (recognizer.state == UIGestureRecognizerStateBegan) {
+			//		//isLongPress = YES;
+			//		NSLog(@"XXXXXX LONG PRESS");	
+			//	}
+			//}
+		//}
+
+		//for (UIGestureRecognizer *recognizer in textField.gestureRecognizers) {
+		  //if ([recognizer isKindOfClass:[UILongPressGestureRecognizer class]]){
+			//recognizer.enabled = NO;
+		  //}
+		//}
+
+		//UILongPressGestureRecognizer *pressGestureRecognizer = [[UILongPressGestureRecognizer alloc] init];
+		//[pressGestureRecognizer addTarget:self action:@selector(labelLongPressed:)];
+		//pressGestureRecognizer.minimumPressDuration = 1.0f;
+		//pressGestureRecognizer.allowableMovement = 100.0f;
+		//pressGestureRecognizer.delegate = self;
+		//[textField addGestureRecognizer: pressGestureRecognizer];
 		
 		///////////////////////////////////////// 
 		// ADD TAP GESTURE (FOR SELECTING)
@@ -1116,6 +1189,11 @@
             [nextResponder becomeFirstResponder];
         }		 		
  }
+
+ //- (BOOL) gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch
+//{
+    //return touch.view != textField;
+//}
 
  - (void) updateLabel:(CDVInvokedUrlCommand *)command { 
  
@@ -1196,9 +1274,56 @@
 		imageView.frame = frameRect;		
  }
 
+ - (void) deleteSticker:(CDVInvokedUrlCommand *)command {
+
+ 		///////////////////////////////////////// 
+		// SET VARS
+		/////////////////////////////////////////	
+
+		int intStickerID = self.currentTag;
+
+		/////////////////////////////////////////  
+		// GET REFERENCE TO TEXT FIELD
+		/////////////////////////////////////////
+
+		UIImageView * imageView = (UIImageView*)[self.mediaMask viewWithTag:intStickerID];
+		[imageView removeFromSuperview];
+		imageView = nil;
+ }
+
+  - (void) deleteLabel:(CDVInvokedUrlCommand *)command {
+
+ 		///////////////////////////////////////// 
+		// SET VARS
+		/////////////////////////////////////////	
+
+		int intLabelID = self.currentTag;
+
+		/////////////////////////////////////////  
+		// GET REFERENCE TO TEXT FIELD
+		/////////////////////////////////////////
+
+		UITextView * textView = (UITextView*)[self.mediaMask viewWithTag:intLabelID];
+		[textView removeFromSuperview];
+		textView = nil;
+ }
+
 ////////////////////////////////////
 // UTILITY METHODS
 ////////////////////////////////////
+
+- (NSString *)hexStringFromColor:(UIColor *)color {
+    const CGFloat *components = CGColorGetComponents(color.CGColor);
+
+    CGFloat r = components[0];
+    CGFloat g = components[1];
+    CGFloat b = components[2];
+
+    return [NSString stringWithFormat:@"#%02lX%02lX%02lX",
+            lroundf(r * 255),
+            lroundf(g * 255),
+            lroundf(b * 255)];
+}
 
  -(UIImage *)changeWhiteColorTransparent: (UIImage *)image
 {
@@ -1360,15 +1485,90 @@
 	}
 }
 
- - (BOOL)textFieldDidBeginEditing:(UITextField *)textField {
+- (void)didLongPress:(UIEvent *)event {
+	
+	//NSLog(@"CHECKING FOR long pressed!!!!!");
+
+	if (textField.longPress == YES)
+	{
+		textField.longPress = NO;
+
+		//NSLog(@"YES -- long pressed!!!!!");
+
+		self.jsonResults = [ [NSMutableDictionary alloc]
+			initWithObjectsAndKeys :
+			nil, @"id",
+			nil, @"delete",                                    
+			nil
+		]; 
+
+		self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+		self.jsonResults[@"delete"] = @"1";	
+
+		self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+		[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+		[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackIdAddLabel];			
+	}		
+}
+
+ - (BOOL)textFieldDidBeginEditing:(UITextFieldPlus *)textField {
 		
+		[NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(didLongPress:) userInfo:nil repeats:NO];
+
 		CGRect newFrame = textField.frame;
 		newFrame.size = CGSizeMake(375, newFrame.size.height);
 		textField.frame = newFrame;
 		
 		self.currentTag = textField.tag;
 		//self.currentTextFieldTag = textField.tag;
-		//NSLog(@"tag: %i", self.currentTextFieldTag);
+		//NSLog(@"XXXXXXXXXXX tag: %i", self.currentTag);
+
+		//NSLog (@"SSSSSSS longPress: %d", textField.running);
+		//NSLog (@"YYYYYYY longPress: %@", [textField running]);
+
+//		NSLog (@"SSSSSSS longPress: %@", [textField longPress]);
+
+		//UITextField *labelView =(UITextField*) sender.view;	
+	
+		//self.currentTag = labelView.tag; 
+		NSString *strTextColor;
+		NSString *strFontName;
+	
+		if (textField.textColor )  
+		{
+			strTextColor = [self hexStringFromColor:textField.textColor];
+			//strTextColor = textField.textColor;
+		}
+
+		if (textField.font )  
+		{
+			strFontName = textField.font.fontName;
+		}
+
+		int intSize = textField.frame.size.height - 20;	
+	 
+		//NSLog(@"TAPPED tag: %i %@ %i", labelView.tag, strBackgroundColor, intSize);
+
+		self.jsonResults = [ [NSMutableDictionary alloc]
+			initWithObjectsAndKeys :
+			nil, @"id",
+			nil, @"fontColor",
+			nil, @"fontName",
+			nil, @"size",                             
+			nil
+		]; 
+
+		self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+		self.jsonResults[@"fontColor"] = strTextColor;
+		self.jsonResults[@"fontName"] = strFontName;
+		self.jsonResults[@"size"] = [NSString stringWithFormat:@"%i", intSize];
+
+		self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+		[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+		[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackIdAddLabel];	
+
  }
 
  - (BOOL)textFieldShouldReturn:(UITextField *)textField {
@@ -1383,6 +1583,15 @@
 {
 	// http://stackoverflow.com/questions/50467/how-do-i-size-a-uitextview-to-its-content
 
+
+	///////////////////////////////////////////////////
+
+	NSDictionary *attributes = @{NSFontAttributeName: textField.font};
+	NSString *text = textField.text;
+	CGRect rect = [text boundingRectWithSize:CGSizeMake(textField.frame.size.width, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:attributes context:nil];
+
+	//////////////////////////////////////////////////
+
 	UITextPosition *Pos2 = [textField positionFromPosition: textField.endOfDocument offset: nil];
 	UITextPosition *Pos1 = [textField positionFromPosition: textField.endOfDocument offset: -textField.text.length];
 	UITextRange *range = [textField textRangeFromPosition:Pos1 toPosition:Pos2];
@@ -1390,8 +1599,9 @@
 	
 	textField.textAlignment = NSTextAlignmentLeft;
 
-	CGFloat fixedWidth = textField.frame.size.width;
-    CGSize newSize = [textField sizeThatFits:CGSizeMake(fixedWidth, MAXFLOAT)];
+	//CGFloat fixedWidth = textField.frame.size.width;
+    //CGSize newSize = [textField sizeThatFits:CGSizeMake(fixedWidth, MAXFLOAT)];
+
     CGRect newFrame = textField.frame;
 
 	if (result1.origin.x > 0)
@@ -1399,7 +1609,8 @@
 		newFrame.origin.x = result1.origin.x;
 	}
 
-    newFrame.size = CGSizeMake(newSize.width, newSize.height);
+    //newFrame.size = CGSizeMake(newSize.width, newSize.height);
+	newFrame.size = CGSizeMake(rect.size.width, rect.size.height);
 	textField.frame = newFrame;
 }
 
@@ -1419,40 +1630,149 @@
 	UIImage * pngImage = [UIImage imageWithData:imageData];
 
 	//UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil);
-	UIImageWriteToSavedPhotosAlbum(pngImage, nil, nil, nil);
+	UIImageWriteToSavedPhotosAlbum(pngImage, nil, nil, nil); 
     return img;
 }
 
- - (void) imgLongPressed:(UILongPressGestureRecognizer*)sender
+- (void) stickerTapped:(UIGestureRecognizer*)sender
 {
-    UIImageView *view_ =(UIImageView*) sender.view;
-	
-    CGPoint point = [sender locationInView:view_.superview];
+	//NSLog(@"stickerTapped");
 
-    if (sender.state == UIGestureRecognizerStateBegan)
-    {
-		//self.currentStickerTag = view_.tag; 
-		self.currentTag = view_.tag; 
-		NSLog(@"tag: %i", view_.tag);
-    }
-    else if (sender.state == UIGestureRecognizerStateChanged)
-    {
-    }
-    else if (sender.state == UIGestureRecognizerStateEnded)
-    {		 
-    }
+    UIImageView *stickerView =(UIImageView*) sender.view;
+	
+	self.currentTag = stickerView.tag; 
+	NSString *strBackgroundColor;
+	
+	if (stickerView.backgroundColor)  
+	{
+		strBackgroundColor = [self hexStringFromColor:stickerView.backgroundColor];
+	}
+
+	int intSize = stickerView.frame.size.height - 20;	
+	 
+	//NSLog(@"TAPPED tag: %i %@ %i", stickerView.tag, strBackgroundColor, intSize);
+
+	self.jsonResults = [ [NSMutableDictionary alloc]
+        initWithObjectsAndKeys :
+		nil, @"id",
+        nil, @"backgroundColor",
+        nil, @"size",                             
+        nil
+    ]; 
+
+	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	self.jsonResults[@"backgroundColor"] = strBackgroundColor;
+	self.jsonResults[@"size"] = [NSString stringWithFormat:@"%i", intSize];
+
+	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackIdAddSticker];		
 }
+
+ - (void) stickerLongPressed:(UILongPressGestureRecognizer*)sender
+{    
+    UIImageView *stickerView =(UIImageView*) sender.view;
+	self.currentTag = stickerView.tag; 
+	
+	self.jsonResults = [ [NSMutableDictionary alloc]
+        initWithObjectsAndKeys :
+		nil, @"id",
+        nil, @"delete",                                    
+        nil
+    ]; 
+
+	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	self.jsonResults[@"delete"] = @"1";	
+
+	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackIdAddSticker];		
+
+}
+
+
+- (void) labelTapped_OLD:(UIGestureRecognizer*)sender
+{
+	NSLog (@"XXXXX labelTapped");
+
+	UITextField *labelView =(UITextField*) sender.view;	
+	
+	self.currentTag = labelView.tag; 
+	NSString *strTextColor;
+	
+	if (labelView.textColor )  
+	{
+		strTextColor = [self hexStringFromColor:labelView.textColor];
+	}
+
+	int intSize = labelView.frame.size.height - 20;	
+	 
+	//NSLog(@"TAPPED tag: %i %@ %i", labelView.tag, strBackgroundColor, intSize);
+
+	self.jsonResults = [ [NSMutableDictionary alloc]
+        initWithObjectsAndKeys :
+		nil, @"id",
+        nil, @"backgroundColor",
+        nil, @"size",                             
+        nil
+    ]; 
+
+	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	self.jsonResults[@"textColor"] = strTextColor;
+	self.jsonResults[@"size"] = [NSString stringWithFormat:@"%i", intSize];
+
+	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackIdAddLabel];		
+}
+
+//- (void)longPress:(UIEvent *)event {
+    //NSLog(@"XXXXX long press");
+//}
 
 - (void) labelLongPressed:(UILongPressGestureRecognizer*)sender
 {
-    UITextField *view_ =(UITextField*) sender.view;
+	NSLog (@"XXXXX labelLongPressed");
+
+    //UITextField *view_ =(UITextField*) sender.view;
 	
-    if (sender.state == UIGestureRecognizerStateBegan)
-    {
-		self.currentTag = view_.tag;
+    //if (sender.state == UIGestureRecognizerStateBegan)
+    //{
+		//self.currentTag = view_.tag;
 		//self.currentTextFieldTag = view_.tag;
-		NSLog(@"tag: %i", view_.tag);
-    }    
+		//NSLog(@"tag: %i", view_.tag);
+    //}    
+
+	UITextField *labelView =(UITextField*) sender.view;
+	self.currentTag = labelView.tag; 
+	
+	self.jsonResults = [ [NSMutableDictionary alloc]
+        initWithObjectsAndKeys :
+		nil, @"id",
+        nil, @"delete",                                    
+        nil
+    ]; 
+
+	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	self.jsonResults[@"delete"] = @"1";	
+
+	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackIdAddLabel];		
+
+	//int intLabelID = self.currentTag;
+
+		/////////////////////////////////////////  
+		// GET REFERENCE TO TEXT FIELD
+		/////////////////////////////////////////
+
+		//UITextView * textView = (UITextView*)[self.mediaMask viewWithTag:intLabelID];
+		//[textView removeFromSuperview];
+		//textView = nil;
 }
 
 - (void) changeFrame:(CDVInvokedUrlCommand *)command {
@@ -3387,6 +3707,63 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
 
 - (BOOL)videoEncodingIsFinished {
     return videoEncodingIsFinished;
+}
+
+@end
+
+@implementation UITextFieldPlus
+@synthesize pressing = _pressing;
+//@synthesize longPress = _longPress;
+@synthesize longPress = _longPress;    // Optional for Xcode 4.4+
+
+- (BOOL)isLongPress {
+    return _longPress;
+}
+- (void)setLongPress:(BOOL)newValue {
+    _longPress = newValue;
+}
+
+- (void)longPressed_OLD;
+{	
+	self.longPress = YES;
+
+	NSLog(@"99999 long pressed!!!!!");
+
+	if (self.longPress == YES)
+	{
+		NSLog(@"DONE!!!!!");
+		self.longPress = NO;
+	}
+}
+
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+	NSLog(@"UITextFieldPlus");
+    [super touchesBegan:touches withEvent:event];
+    self.pressing = YES;    
+}
+
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
+	//NSLog(@"UITextFieldPlus ENDED");
+    [super touchesEnded:touches withEvent:event];
+    [NSObject cancelPreviousPerformRequestsWithTarget:self];
+    self.pressing = NO;
+}
+
+- (BOOL)canPerformAction:(SEL)action withSender:(id)sender
+{	
+    if (action == @selector(paste:) || action == @selector(select:) || action == @selector(selectAll:))
+	{
+		self.longPress = YES;
+		//[self longPressed];	
+		//if (self.longPress == NO)
+		//{
+			//self.longPress = YES;
+			//[self longPressed];			
+		//}
+        return NO;
+	}
+
+    return [super canPerformAction:action withSender:sender];
 }
 
 @end
