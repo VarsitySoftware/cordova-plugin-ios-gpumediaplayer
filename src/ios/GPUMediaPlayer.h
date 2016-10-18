@@ -139,6 +139,8 @@ This property is not key-value observable.
 @property(readwrite, nonatomic) int currentTag;
 @property(readwrite, nonatomic) int seekTo;
 
+@property(readwrite, nonatomic) BOOL restart;
+
 -(void)start:(CDVInvokedUrlCommand *)command;
 -(void)play:(CDVInvokedUrlCommand *)command;
 -(void)pause:(CDVInvokedUrlCommand *)command;
