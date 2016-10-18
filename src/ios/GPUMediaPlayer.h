@@ -9,10 +9,16 @@
 #import <Cordova/CDVPlugin.h> 
 #import <GPUImage/GPUImageFramework.h>
 #import <GPUImage/GPUImageContext.h>
-#import <GPUImage/GPUImageOutput.h>
+#import <GPUImage/GPUImageOutput.h> 
+
+//@interface UIFontPlus : UIFont
+//@property (nonatomic) NSString *fontPath;
+//@property (nonatomic)UIFont *font; 
+//@end
 
 @interface UITextFieldPlus : UITextField
 @property(assign, nonatomic) BOOL pressing; 
+@property (nonatomic)NSString *fontPath; 
 //@property(readwrite, nonatomic) BOOL longPress;
 @property (getter = isLongPress) BOOL longPress;
 -(void) longPressed_OLD;
