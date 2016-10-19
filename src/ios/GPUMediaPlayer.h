@@ -144,7 +144,9 @@ This property is not key-value observable.
 @property (strong, nonatomic) UIImageView* overlayView;
 @property (strong, nonatomic) UIImageView* frameView;
 
-@property(readwrite, nonatomic) int currentTag;
+//@property(readwrite, nonatomic) int currentTag;
+@property(readwrite, nonatomic) int currentStickerID;
+@property(readwrite, nonatomic) int currentLabelID;
 @property(readwrite, nonatomic) int seekTo;
 
 @property(readwrite, nonatomic) BOOL restart;
