@@ -1092,7 +1092,7 @@
 
 		//BOOL foundFile = [[NSFileManager defaultManager] fileExistsAtPath:strFontFilePath];
 		//NSAssert(foundFile, @"The font at: \"%@\" was not found.", strFilePath);
-		NSLog(@"RRRRRRR strFontFilePath: %@", strFontFilePath); 
+		//NSLog(@"RRRRRRR strFontFilePath: %@", strFontFilePath); 
 
 		CFURLRef fontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFontFilePath, kCFURLPOSIXPathStyle, false);;
 		CGDataProviderRef dataProvider = CGDataProviderCreateWithURL(fontURL);
@@ -1178,7 +1178,7 @@
 		textField.textAlignment = UITextAlignmentCenter;
 		textField.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
 		[textField setBackgroundColor:[UIColor clearColor]];
-		[textField setTextColor:[UIColor whiteColor]];
+		[textField setTextColor:[UIColor whiteColor]];		
 		textField.tintColor = [UIColor whiteColor];
 		textField.tag = intLabelID;
 		textField.delegate = self; 
@@ -1476,11 +1476,22 @@
 ////////////////////////////////////
 
 - (NSString *)hexStringFromColor:(UIColor *)color {
+
+	if (color == [UIColor whiteColor]) {
+        // Special case, as white doesn't fall into the RGB color space
+        return @"#ffffff";
+    }
+
     const CGFloat *components = CGColorGetComponents(color.CGColor);
 
     CGFloat r = components[0];
     CGFloat g = components[1];
     CGFloat b = components[2];
+
+	NSLog(@"Red: %f", components[0]);
+	NSLog(@"Green: %f", components[1]); 
+	NSLog(@"Blue: %f", components[2]);
+
 
     return [NSString stringWithFormat:@"#%02lX%02lX%02lX",
             lroundf(r * 255),
@@ -1677,7 +1688,7 @@
 
  - (BOOL)textFieldDidBeginEditing:(UITextFieldPlus *)textField {
 		
-		[NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(didLongPress:) userInfo:nil repeats:NO];
+		[NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(didLongPress:) userInfo:nil repeats:NO];
 
 		CGRect newFrame = textField.frame;
 		//newFrame.size = CGSizeMake(375, newFrame.size.height);
@@ -1705,6 +1716,8 @@
 			strTextColor = [self hexStringFromColor:textField.textColor];
 			//strTextColor = textField.textColor;
 		}
+
+		NSLog (@"SSSSSSS strTextColor: %@", strTextColor);
 
 		if (textField.font )  
 		{
