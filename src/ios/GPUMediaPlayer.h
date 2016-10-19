@@ -167,6 +167,10 @@ This property is not key-value observable.
 -(void)show:(CDVInvokedUrlCommand *)command; 
 -(void)destroy:(CDVInvokedUrlCommand *)command;
 
+-(void)download:(CDVInvokedUrlCommand *)command;
+-(void)filter:(CDVInvokedUrlCommand *)command;
+-(void)preview:(CDVInvokedUrlCommand *)command;
+
 -(void)begin; 
 
 -(void)changeFilter:(CDVInvokedUrlCommand *)command;
