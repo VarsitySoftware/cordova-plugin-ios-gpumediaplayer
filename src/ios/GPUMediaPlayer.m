@@ -994,7 +994,8 @@
 		int intStickerPosX = [[options objectForKey:@"stickerPosX"] integerValue];
 		int intStickerPosY = [[options objectForKey:@"stickerPosY"] integerValue];
 
-		self.currentTag = intStickerID;
+		//self.currentTag = intStickerID;
+		self.currentStickerID = intStickerID;
 
 		///////////////////////////////////////// 
 		// GET STICKER 
@@ -1033,7 +1034,12 @@
 		// ADD PAN GESTURES TO VIEW
 		/////////////////////////////////////////
 
-		[self addLimitedPanGesturesToView:stickerView];
+		//[self addLimitedPanGesturesToView:stickerView];
+
+		stickerView.userInteractionEnabled = YES;  // Enable user interaction    
+		UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleLimitedPanGesture:)];
+		panGesture.delegate = self;
+		[stickerView addGestureRecognizer:panGesture];    
 
 		///////////////////////////////////////// 
 		// ADD TAP GESTURE (FOR EDITING)
@@ -1166,7 +1172,8 @@
 		// SET CURRENT TAG 
 		/////////////////////////////////////////
 
-		self.currentTag = intLabelID;
+		//self.currentTag = intLabelID;
+		self.currentLabelID = intLabelID;
 
 		///////////////////////////////////////// 
 		// CREATE TEXT FIELD
@@ -1192,7 +1199,13 @@
 		// ADD PAN GESTURES TO VIEW 
 		/////////////////////////////////////////
 
-		[self addLimitedPanGesturesToView:textField];
+		//[self addLimitedPanGesturesToView:textField];
+
+		textField.userInteractionEnabled = YES;  // Enable user interaction    
+		UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleLimitedPanGesture:)];
+		panGesture.delegate = self;
+		[textField addGestureRecognizer:panGesture];    
+
 
 		///////////////////////////////////////// 
 		// ADD TAP GESTURE (FOR EDITING)
@@ -1276,7 +1289,8 @@
 		//NSString * strFontPath = [options objectForKey:@"fontPath"];
 
 		//int intLabelID = self.currentTextFieldTag;
-		int intLabelID = self.currentTag;
+		//int intLabelID = self.currentTag;
+		int intLabelID = self.currentLabelID;
 
 		/////////////////////////////////////////  
 		// GET REFERENCE TO TEXT FIELD
@@ -1399,7 +1413,8 @@
 		int intStickerSize = [[options objectForKey:@"stickerSize"] integerValue];
 		NSString *strStickerColor = [options objectForKey:@"stickerColor"];
 
-		int intStickerID = self.currentTag;
+		//int intStickerID = self.currentTag;
+		int intStickerID = self.currentStickerID;
 
 		/////////////////////////////////////////   
 		// GET REFERENCE TO TEXT FIELD 
@@ -1443,7 +1458,8 @@
 		// SET VARS
 		/////////////////////////////////////////	
 
-		int intStickerID = self.currentTag;
+		//int intStickerID = self.currentTag;
+		int intStickerID = self.currentStickerID;
 
 		/////////////////////////////////////////  
 		// GET REFERENCE TO TEXT FIELD
@@ -1460,7 +1476,8 @@
 		// SET VARS
 		/////////////////////////////////////////	
 
-		int intLabelID = self.currentTag;
+		//int intLabelID = self.currentTag;
+		int intLabelID = self.currentLabelID;
 
 		/////////////////////////////////////////  
 		// GET REFERENCE TO TEXT FIELD
@@ -1524,7 +1541,8 @@
 -(void)dismissKeyboard {
        
 	//UITextField* textField = [self.rootView viewWithTag:(self.currentTextFieldTag)];
-	UITextFieldPlus* textField = [self.rootView viewWithTag:(self.currentTag)];
+	//UITextFieldPlus* textField = [self.rootView viewWithTag:(self.currentTag)];
+	UITextFieldPlus* textField = [self.rootView viewWithTag:(self.currentLabelID)];
 
 	[self resizeTextField: textField];
 	[self.rootView endEditing:YES];
@@ -1676,7 +1694,8 @@
 			nil
 		]; 
 
-		self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+		//self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+		self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentLabelID];
 		self.jsonResults[@"delete"] = @"1";	
 
 		self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
@@ -1696,7 +1715,8 @@
 		//newFrame.size = CGSizeMake(375, 150);
 		textField.frame = newFrame;
 		
-		self.currentTag = textField.tag;
+		//self.currentTag = textField.tag;
+		self.currentLabelID = textField.tag;
 		//self.currentTextFieldTag = textField.tag;
 		//NSLog(@"XXXXXXXXXXX tag: %i", self.currentTag);
 
@@ -1737,7 +1757,8 @@
 			nil
 		]; 
 
-		self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+		//self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+		self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentLabelID];
 		self.jsonResults[@"fontColor"] = strTextColor;
 		self.jsonResults[@"fontName"] = strFontName;
 		self.jsonResults[@"size"] = [NSString stringWithFormat:@"%i", intSize];
@@ -1817,7 +1838,8 @@
 
     UIImageView *stickerView =(UIImageView*) sender.view;
 	
-	self.currentTag = stickerView.tag; 
+	//self.currentTag = stickerView.tag; 
+	self.currentStickerID = stickerView.tag; 
 	NSString *strBackgroundColor;
 	
 	if (stickerView.backgroundColor)  
@@ -1837,7 +1859,8 @@
         nil
     ]; 
 
-	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	//self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentStickerID];
 	self.jsonResults[@"backgroundColor"] = strBackgroundColor;
 	self.jsonResults[@"size"] = [NSString stringWithFormat:@"%i", intSize];
 
@@ -1850,7 +1873,8 @@
  - (void) stickerLongPressed:(UILongPressGestureRecognizer*)sender
 {    
     UIImageView *stickerView =(UIImageView*) sender.view;
-	self.currentTag = stickerView.tag; 
+	//self.currentTag = stickerView.tag; 
+	self.currentStickerID = stickerView.tag; 
 	
 	self.jsonResults = [ [NSMutableDictionary alloc]
         initWithObjectsAndKeys :
@@ -1859,7 +1883,8 @@
         nil
     ]; 
 
-	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	//self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentStickerID];
 	self.jsonResults[@"delete"] = @"1";	
 
 	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
@@ -1869,46 +1894,6 @@
 
 }
 
-
-- (void) labelTapped_OLD:(UIGestureRecognizer*)sender
-{
-	NSLog (@"XXXXX labelTapped");
-
-	UITextField *labelView =(UITextField*) sender.view;	
-	
-	self.currentTag = labelView.tag; 
-	NSString *strTextColor;
-	
-	if (labelView.textColor )  
-	{
-		strTextColor = [self hexStringFromColor:labelView.textColor];
-	}
-
-	int intSize = labelView.frame.size.height - 20;	
-	 
-	//NSLog(@"TAPPED tag: %i %@ %i", labelView.tag, strBackgroundColor, intSize);
-
-	self.jsonResults = [ [NSMutableDictionary alloc]
-        initWithObjectsAndKeys :
-		nil, @"id",
-        nil, @"backgroundColor",
-        nil, @"size",                             
-        nil
-    ]; 
-
-	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
-	self.jsonResults[@"textColor"] = strTextColor;
-	self.jsonResults[@"size"] = [NSString stringWithFormat:@"%i", intSize];
-
-	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
-
-	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
-	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackIdAddLabel];		
-}
-
-//- (void)longPress:(UIEvent *)event {
-    //NSLog(@"XXXXX long press");
-//}
 
 - (void) labelLongPressed:(UILongPressGestureRecognizer*)sender
 {
@@ -1924,7 +1909,8 @@
     //}    
 
 	UITextField *labelView =(UITextField*) sender.view;
-	self.currentTag = labelView.tag; 
+	//self.currentTag = labelView.tag; 
+	self.currentLabelID = labelView.tag; 
 	
 	self.jsonResults = [ [NSMutableDictionary alloc]
         initWithObjectsAndKeys :
@@ -1933,7 +1919,8 @@
         nil
     ]; 
 
-	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	//self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentLabelID];
 	self.jsonResults[@"delete"] = @"1";	
 
 	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
@@ -2407,15 +2394,16 @@
   return hexInt;
 }
 
-- (void)addLimitedPanGesturesToView:(UIView *)view {
+- (void)addLimitedPanGesturesToView_OLD:(UIView *)view {
 	
-	self.currentTag = view.tag;
+	//self.currentTag = view.tag;
+	//self.currentTag = view.tag;
 
-    view.userInteractionEnabled = YES;  // Enable user interaction
+    //view.userInteractionEnabled = YES;  // Enable user interaction
     
-    UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleLimitedPanGesture:)];
-    panGesture.delegate = self;
-    [view addGestureRecognizer:panGesture];    
+    //UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleLimitedPanGesture:)];
+    //panGesture.delegate = self;
+    //[view addGestureRecognizer:panGesture];    
   
 }
 
