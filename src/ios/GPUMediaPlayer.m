@@ -811,11 +811,14 @@
 	self.jsonResults = [ [NSMutableDictionary alloc]
 			initWithObjectsAndKeys :
 			nil, @"base64",			
+			nil, @"filterID",			
 			nil
 		]; 
 
-	self.jsonResults[@"base64"] = encodedImage;
-	
+	self.jsonResults[@"base64"] = encodedImage;	
+	self.jsonResults[@"filterID"] = [NSString stringWithFormat:@"%i", intFilterID];
+		
+
 	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
 
 	[self.pluginResult setKeepCallbackAsBool:NO]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
