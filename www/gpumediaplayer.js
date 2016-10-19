@@ -270,5 +270,17 @@
         return cordova.exec(success, fail, "GPUMediaPlayer", "preview", [params]);
     };
 
+    GPUMediaPlayer.prototype.loop = function (success, fail, options)
+    {
+        if (!options) {
+            options = {};
+        }
+
+        var params = {
+            enabled: options.loopEnabled ? options.loopEnabled : 0
+        };
+
+        return cordova.exec(success, fail, "GPUMediaPlayer", "loop", [params]);
+    };
 
     window.gpuMediaPlayer = new GPUMediaPlayer();
