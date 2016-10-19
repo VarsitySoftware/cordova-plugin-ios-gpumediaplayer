@@ -1,4 +1,5 @@
 
+
     var GPUMediaPlayer = function ()
     {
 
@@ -224,5 +225,50 @@
 
         return cordova.exec(success, fail, "GPUMediaPlayer", "changeFrame", [params]);
     };
+
+    GPUMediaPlayer.prototype.download = function (success, fail, options)
+    {
+        if (!options) {
+            options = {};
+        }
+
+        var params = {
+            mediaURL: options.mediaURL ? options.mediaURL : null,
+            fileName: options.fileName ? options.fileName : null,
+            fileExtension: options.fileExtension ? options.fileExtension : null
+        };
+
+        return cordova.exec(success, fail, "GPUMediaPlayer", "download", [params]);
+    };
+
+    GPUMediaPlayer.prototype.filter = function (success, fail, options)
+    {
+        if (!options) {
+            options = {};
+        }
+
+        var params = {
+            mediaURL: options.mediaURL ? options.mediaURL : null,
+            mediaPath: options.mediaPath ? options.mediaPath : null,
+            filterID: options.filterID ? options.filterID : 0
+        };
+
+        return cordova.exec(success, fail, "GPUMediaPlayer", "filter", [params]);
+    };
+
+    GPUMediaPlayer.prototype.preview = function (success, fail, options)
+    {
+        if (!options) {
+            options = {};
+        }
+
+        var params = {
+            mediaURL: options.mediaURL ? options.mediaURL : null,
+            mediaPath: options.mediaPath ? options.mediaPath : null            
+        };
+
+        return cordova.exec(success, fail, "GPUMediaPlayer", "preview", [params]);
+    };
+
 
     window.gpuMediaPlayer = new GPUMediaPlayer();
