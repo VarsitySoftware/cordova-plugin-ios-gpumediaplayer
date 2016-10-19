@@ -656,6 +656,8 @@
 	int intGifPlaybackSpeed = [[options objectForKey:@"gifPlaybackSpeed"] integerValue];
 	int intGifMaxDuration = [[options objectForKey:@"gifMaxDuration"] integerValue];
 
+	int intSaveToCameraRoll = [[options objectForKey:@"saveToCameraRoll"] integerValue];
+
 	NSString * strMediaURL = [options objectForKey:@"mediaURL"];	
 	int intMediaType = [[options objectForKey:@"mediaType"] integerValue];
 
@@ -925,77 +927,87 @@
 		NSMutableDictionary *result = [[NSMutableDictionary alloc] init];    
 		//result[@"url"] = url;
 
-		if (intMediaType == 1) // 1 = video
+		if (intSaveToCameraRoll == 0) // JUST SAVE TO TEMP DIR
 		{
-			[[PHPhotoLibrary sharedPhotoLibrary] performChanges:^{
-			PHAssetChangeRequest *changeRequest = [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:fileURL];
-			PHObjectPlaceholder *placeholder = [changeRequest placeholderForCreatedAsset];
+			result[@"assetURL"] = fileURL.relativePath;
 
-			NSString * id = [placeholder.localIdentifier substringToIndex:36];					
-			NSString * strAssetURL = [NSString stringWithFormat:@"assets-library://asset/asset.%@?id=%@&ext=%@", strMediaFileExtension, id, strMediaFileExtension];
-
-			result[@"assetURL"] = strAssetURL;
-
-			} completionHandler:^(BOOL success, NSError *error) {
-				if (success) {
-					NSLog(@"DOWNLOADED!!!");
-					//[[NSFileManager defaultManager] removeItemAtURL:tempURLVideo error:nil];					
-    
-					CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: result];
-					[self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackIdSave];
-
-				} else {
-					//NSLog(@"something wrong %@", error.localizedDescription);
-					//[[NSFileManager defaultManager] removeItemAtURL:tempURLVideo error:nil];
-
-					 //CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Error getting asset url"];
-					//[self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-				}
-		}];
+			CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: result];
+			[self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackIdSave];
 		}
-
-		if (intMediaType == 100) // 1 = video
+		else if (intSaveToCameraRoll == 1) // SAVE TO CAMERA ROLL
 		{
-			//NSLog(@"Saving to photo album...");
-			if (UIVideoAtPathIsCompatibleWithSavedPhotosAlbum(fileURL.relativePath))
-			{	
-				UISaveVideoAtPathToSavedPhotosAlbum(fileURL.relativePath, nil, nil, nil);				
-				NSLog(@"Saved video file to path: %@, file size: %@", fileURL, strFileSize);
-			}
-			else
+			if (intMediaType == 1) // 1 = video
 			{
-				NSLog(@"Error!!!");
-			}		         
-		}
-
-		if (intMediaType == 2) // 2 = gif
-		{
-			[self createGIFfromURL:fileURL framesPerSecond:intGifFramesPerSecond playbackSpeed:intGifPlaybackSpeed maxDuration:intGifMaxDuration loopCount:0 completion:^(NSURL *GifURL) {  // loopCount = 0 means infinite loop
-
-				NSLog(@"Finished generating GIF: %@", GifURL); 
-			 
 				[[PHPhotoLibrary sharedPhotoLibrary] performChanges:^{
-					PHAssetChangeRequest *assetRequest = [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:GifURL];				
-				} completionHandler:^(BOOL success, NSError *error) { 
-					if (success)
-					{
-						//NSLog(@"SAVED GIF!!!");
-						NSError *gifFileSizeError = nil; 
-						NSString *strGifFileSize;
-						NSDictionary *gifAttribs = [[NSFileManager defaultManager] attributesOfItemAtPath:GifURL.relativePath error:&gifFileSizeError];
-						if (gifAttribs) {
-							strGifFileSize = [NSByteCountFormatter stringFromByteCount:[gifAttribs fileSize] countStyle:NSByteCountFormatterCountStyleFile];			
-						}		
+				PHAssetChangeRequest *changeRequest = [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:fileURL];
+				PHObjectPlaceholder *placeholder = [changeRequest placeholderForCreatedAsset];
 
-						NSLog(@"Saved gif file to path: %@, file size: %@", GifURL, strGifFileSize);
+				NSString * id = [placeholder.localIdentifier substringToIndex:36];					
+				NSString * strAssetURL = [NSString stringWithFormat:@"assets-library://asset/asset.%@?id=%@&ext=%@", strMediaFileExtension, id, strMediaFileExtension];
+
+				result[@"assetURL"] = strAssetURL;
+
+				} completionHandler:^(BOOL success, NSError *error) {
+					if (success) {
+						NSLog(@"DOWNLOADED!!!");
+						//[[NSFileManager defaultManager] removeItemAtURL:tempURLVideo error:nil];					
+    
+						CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: result];
+						[self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackIdSave];
+
+					} else {
+						//NSLog(@"something wrong %@", error.localizedDescription);
+						//[[NSFileManager defaultManager] removeItemAtURL:tempURLVideo error:nil];
+
+						 //CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Error getting asset url"];
+						//[self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 					}
-					else
-					{
-						NSLog(@"%@", error);
-					}
-				}];				
 			}];
-		}		
+			}
+
+			if (intMediaType == 100) // 1 = video
+			{
+				//NSLog(@"Saving to photo album...");
+				if (UIVideoAtPathIsCompatibleWithSavedPhotosAlbum(fileURL.relativePath))
+				{	
+					UISaveVideoAtPathToSavedPhotosAlbum(fileURL.relativePath, nil, nil, nil);				
+					NSLog(@"Saved video file to path: %@, file size: %@", fileURL, strFileSize);
+				}
+				else
+				{
+					NSLog(@"Error!!!");
+				}		         
+			}
+
+			if (intMediaType == 2) // 2 = gif
+			{
+				[self createGIFfromURL:fileURL framesPerSecond:intGifFramesPerSecond playbackSpeed:intGifPlaybackSpeed maxDuration:intGifMaxDuration loopCount:0 completion:^(NSURL *GifURL) {  // loopCount = 0 means infinite loop
+
+					NSLog(@"Finished generating GIF: %@", GifURL); 
+			 
+					[[PHPhotoLibrary sharedPhotoLibrary] performChanges:^{
+						PHAssetChangeRequest *assetRequest = [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:GifURL];				
+					} completionHandler:^(BOOL success, NSError *error) { 
+						if (success)
+						{
+							//NSLog(@"SAVED GIF!!!");
+							NSError *gifFileSizeError = nil; 
+							NSString *strGifFileSize;
+							NSDictionary *gifAttribs = [[NSFileManager defaultManager] attributesOfItemAtPath:GifURL.relativePath error:&gifFileSizeError];
+							if (gifAttribs) {
+								strGifFileSize = [NSByteCountFormatter stringFromByteCount:[gifAttribs fileSize] countStyle:NSByteCountFormatterCountStyleFile];			
+							}		
+
+							NSLog(@"Saved gif file to path: %@, file size: %@", GifURL, strGifFileSize);
+						}
+						else
+						{
+							NSLog(@"%@", error);
+						}
+					}];				
+				}];
+			}		
+		}
     }];
 }
 
