@@ -696,6 +696,12 @@
 
 	[saveFilter removeAllTargets];   
 
+	////////////////////////////////////////
+	// SET MEDIA FILE EXTENSION
+	/////////////////////////////////////////
+
+	strMediaFileExtension = @"mp4";
+
 	///////////////////////////////////////// 
 	// HAS MEDIA ALREADY BEEN SAVED TO DEVICE?
 	/////////////////////////////////////////
@@ -726,7 +732,7 @@
 		// SET MEDIA FILE EXTENSION
 		/////////////////////////////////////////
 
-		strMediaFileExtension = @"mp4";
+		//strMediaFileExtension = @"mp4";
 
 		//if (intMediaType == 1) // 1 = video
 		//{		
@@ -916,7 +922,39 @@
 		//[self createGIFfromURL:fileURL framesPerSecond:5 playbackSpeed:4 loopCount:0 completion:^(NSURL *GifURL) {  // 5 fps playing back at 2x
 		//[self createGIFfromURL:fileURL framesPerSecond:10 playbackSpeed:2 loopCount:0 completion:^(NSURL *GifURL) {  // 5 fps playing back at 2x
 
+		NSMutableDictionary *result = [[NSMutableDictionary alloc] init];    
+		//result[@"url"] = url;
+
 		if (intMediaType == 1) // 1 = video
+		{
+			[[PHPhotoLibrary sharedPhotoLibrary] performChanges:^{
+			PHAssetChangeRequest *changeRequest = [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:fileURL];
+			PHObjectPlaceholder *placeholder = [changeRequest placeholderForCreatedAsset];
+
+			NSString * id = [placeholder.localIdentifier substringToIndex:36];					
+			NSString * strAssetURL = [NSString stringWithFormat:@"assets-library://asset/asset.%@?id=%@&ext=%@", strMediaFileExtension, id, strMediaFileExtension];
+
+			result[@"assetURL"] = strAssetURL;
+
+			} completionHandler:^(BOOL success, NSError *error) {
+				if (success) {
+					NSLog(@"DOWNLOADED!!!");
+					//[[NSFileManager defaultManager] removeItemAtURL:tempURLVideo error:nil];					
+    
+					CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: result];
+					[self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackIdSave];
+
+				} else {
+					//NSLog(@"something wrong %@", error.localizedDescription);
+					//[[NSFileManager defaultManager] removeItemAtURL:tempURLVideo error:nil];
+
+					 //CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Error getting asset url"];
+					//[self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+				}
+		}];
+		}
+
+		if (intMediaType == 100) // 1 = video
 		{
 			//NSLog(@"Saving to photo album...");
 			if (UIVideoAtPathIsCompatibleWithSavedPhotosAlbum(fileURL.relativePath))
