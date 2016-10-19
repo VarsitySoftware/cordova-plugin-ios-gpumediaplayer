@@ -565,6 +565,27 @@
 	[self begin];
  }
 
+ - (void) loop:(CDVInvokedUrlCommand *)command {
+	
+	////////////////////////////	
+	// SET VARS!!!
+	////////////////////////////
+
+	NSDictionary *options = [command.arguments objectAtIndex: 0];
+  
+	int intEnabled = [[options objectForKey:@"enabled"] integerValue];
+   
+	if (intEnabled == 1)
+	{
+		self.loop = YES;
+	}
+	else
+	{
+		self.loop = NO;
+	}
+ }
+
+
  - (void) restart_OLD:(CDVInvokedUrlCommand *)command { 
 
 	NSError* error = nil;
