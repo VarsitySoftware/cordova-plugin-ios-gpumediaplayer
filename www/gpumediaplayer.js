@@ -277,7 +277,7 @@
         }
 
         var params = {
-            enabled: options.loopEnabled ? options.loopEnabled : 0
+            enabled: options.enabled ? options.enabled : 0
         };
 
         return cordova.exec(success, fail, "GPUMediaPlayer", "loop", [params]);
