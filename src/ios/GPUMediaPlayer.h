@@ -11,6 +11,8 @@
 #import <GPUImage/GPUImageContext.h>
 #import <GPUImage/GPUImageOutput.h> 
 
+//#import <CoreText/CoreText.h>
+
 //@interface UIFontPlus : UIFont
 //@property (nonatomic) NSString *fontPath;
 //@property (nonatomic)UIFont *font; 
@@ -18,7 +20,7 @@
 
 @interface UITextFieldPlus : UITextField
 @property(assign, nonatomic) BOOL pressing; 
-@property (nonatomic)NSString *fontPath; 
+@property (nonatomic)NSString *fontName; 
 //@property(readwrite, nonatomic) BOOL longPress;
 @property (getter = isLongPress) BOOL longPress;
 -(void) longPressed_OLD;
@@ -146,6 +148,11 @@ This property is not key-value observable.
 @property(readwrite, nonatomic) int seekTo;
 
 @property(readwrite, nonatomic) BOOL restart;
+
+//@property(readwrite, nonatomic) CFURLRef customFontURL;
+//@property(readwrite, nonatomic) CGDataProviderRef customFontDataProvider;
+//@property(readwrite, nonatomic) CGFontRef customFontReference;
+//@property(readwrite, nonatomic) CTFontRef customFontGraphic;
 
 -(void)start:(CDVInvokedUrlCommand *)command;
 -(void)play:(CDVInvokedUrlCommand *)command;
