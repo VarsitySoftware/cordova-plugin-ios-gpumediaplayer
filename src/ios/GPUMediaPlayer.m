@@ -638,6 +638,191 @@
 	[self.scrollView setHidden:NO];	
  }
 
+ - (void) download:(CDVInvokedUrlCommand *)command { 	
+	
+	////////////////////////////////////
+	// SET VARS
+	//////////////////////////////////// 
+
+	//NSString* callbackId = command.callbackId;
+
+	NSDictionary *options = [command.arguments objectAtIndex: 0];
+
+	NSString * strMediaURL = [options objectForKey:@"mediaURL"];	
+	NSString * strFileName = [options objectForKey:@"fileName"];
+	NSString * strFileExtension = [options objectForKey:@"fileExtension"];
+
+	NSURL * mediaURL = [NSURL URLWithString:strMediaURL];
+
+	////////////////////////////////////
+	// CREATE TEMP PATH
+	//////////////////////////////////// 
+
+    if (!NSTemporaryDirectory())
+    {
+       // no tmp dir for the app (need to create one)
+    }
+
+    NSURL *tmpDirURL = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];    
+	NSURL *filePath = [[tmpDirURL URLByAppendingPathComponent:strFileName] URLByAppendingPathExtension:strFileExtension];
+
+	//NSLog(@"FilePath: %@", filePath.absoluteString);
+	//NSLog(@"FilePath: %@", filePath.absoluteString);
+
+	NSData *urlData = [NSData dataWithContentsOfURL:mediaURL];
+    //[urlData writeToURL:filePath options:NSAtomicWrite error:nil];
+
+	if ([urlData writeToURL:filePath options:NSAtomicWrite error:nil])
+	{
+		NSLog(@"It worked");
+	}
+	else
+	{
+		NSLog(@"It DID NOT work");
+	}
+
+	usleep(1000000);  // SLEEP FOR 1 SEC TO GIVE PHONE TIME TO SAVE  
+
+	self.jsonResults = [ [NSMutableDictionary alloc]
+			initWithObjectsAndKeys :
+			nil, @"path",			
+			nil
+		]; 
+
+	self.jsonResults[@"path"] = filePath.absoluteString;
+	
+	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+	[self.pluginResult setKeepCallbackAsBool:NO]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:command.callbackId];	
+
+ }
+
+ - (void) filter:(CDVInvokedUrlCommand *)command { 	
+	
+	////////////////////////////////////
+	// SET VARS
+	//////////////////////////////////// 
+
+	NSDictionary *options = [command.arguments objectAtIndex: 0];
+
+	NSString * strMediaURL = [options objectForKey:@"mediaURL"];	
+	NSString * strMediaPath = [options objectForKey:@"mediaPath"];
+	int intFilterID = [[options objectForKey:@"filterID"] integerValue];
+
+	////////////////////////////////////
+	// CREATE UI IMAGE
+	//////////////////////////////////// 
+
+	UIImage *inputImage =  [UIImage imageWithContentsOfFile: strMediaPath];
+
+	//CGFloat width = inputImage.size.width;
+	//CGFloat height = inputImage.size.height;
+
+	//NSLog(@"Width: %f, Height: %f", width, height); 
+
+	GPUImagePicture *stillImageSource = [[GPUImagePicture alloc] initWithImage:inputImage];
+	
+	GPUImageOutput<GPUImageInput> *stillImageFilter = nil;
+		
+	///////////////////////////////////////// 
+	// SELECT FILTER
+	/////////////////////////////////////////	
+
+	switch (intFilterID)
+	{
+		case 0:
+			stillImageFilter = [[GPUImageBrightnessFilter alloc] init];					
+			break;		
+		case 1:
+			stillImageFilter = [[GPUImageSepiaFilter alloc] init];         
+			[(GPUImageSepiaFilter *)stillImageFilter setIntensity:0.5];   			
+			break;
+		case 2:
+			stillImageFilter = [[GPUImagePixellateFilter alloc] init];            
+			[(GPUImagePixellateFilter *)stillImageFilter setFractionalWidthOfAPixel:0.0125];			
+			break;
+		case 3:
+			stillImageFilter = [[GPUImagePolkaDotFilter alloc] init];            
+			[(GPUImagePolkaDotFilter *)stillImageFilter setFractionalWidthOfAPixel:0.0125];			
+			break;
+		case 4:
+			stillImageFilter = [[GPUImageHalftoneFilter alloc] init];            
+			[(GPUImageHalftoneFilter *)stillImageFilter setFractionalWidthOfAPixel:0.0125];			
+			break;
+		case 5:
+			stillImageFilter = [[GPUImageSaturationFilter alloc] init];            
+			[(GPUImageSaturationFilter *)stillImageFilter setSaturation:1.25];			
+			break;
+		case 6:
+			stillImageFilter = [[GPUImageContrastFilter alloc] init];            
+			[(GPUImageContrastFilter  *)stillImageFilter setContrast:2.0];			
+			break;
+		case 7:
+			stillImageFilter = [[GPUImageMonochromeFilter alloc] init];            
+			[(GPUImageMonochromeFilter   *)stillImageFilter setIntensity:0.5];			
+			break;
+		case 8:
+			stillImageFilter = [[GPUImageSketchFilter  alloc] init];            
+			[(GPUImageSketchFilter  *)stillImageFilter setEdgeStrength:0.25];			
+			break;
+		case 9:
+			stillImageFilter = [[GPUImageHazeFilter alloc] init];            
+			[(GPUImageHazeFilter *)stillImageFilter setDistance:0.2];			
+			break;
+		case 10:
+			stillImageFilter = [[GPUImageSobelEdgeDetectionFilter alloc] init];            
+			[(GPUImageSobelEdgeDetectionFilter *)stillImageFilter setEdgeStrength:0.25];			
+			break;
+		case 11:
+			stillImageFilter = [[GPUImageAdaptiveThresholdFilter  alloc] init];            
+			[(GPUImageAdaptiveThresholdFilter *)stillImageFilter setBlurRadiusInPixels:5];			
+			break;
+		case 12:
+			stillImageFilter = [[GPUImageAverageLuminanceThresholdFilter  alloc] init];            
+			[(GPUImageAverageLuminanceThresholdFilter *)stillImageFilter setThresholdMultiplier:1];			
+			break;
+		case 13:
+			stillImageFilter = [[GPUImageKuwaharaFilter alloc] init];            
+			[(GPUImageKuwaharaFilter *)stillImageFilter setRadius:round(3)];			
+			break;
+		case 14:
+			stillImageFilter = [[GPUImageEmbossFilter alloc] init];            
+			[(GPUImageEmbossFilter *)stillImageFilter setIntensity:2];			
+			break;		
+		case 15:
+			stillImageFilter = [[GPUImageVignetteFilter  alloc] init];            
+			[(GPUImageVignetteFilter  *)stillImageFilter setVignetteEnd:0.75];			
+			break;
+		default:
+			NSLog (@"Integer out of range");
+			break; 
+	}
+
+	[stillImageSource addTarget:stillImageFilter];
+	[stillImageFilter useNextFrameForImageCapture];
+	[stillImageSource processImage];
+
+	UIImage *filteredImage = [stillImageFilter imageFromCurrentFramebuffer];
+	NSData *imageData = UIImageJPEGRepresentation(filteredImage, 1.0);
+
+	NSString *encodedImage = [NSString stringWithFormat:@"data:image/jpg;base64,%@",[imageData base64Encoding]];
+            
+	self.jsonResults = [ [NSMutableDictionary alloc]
+			initWithObjectsAndKeys :
+			nil, @"base64",			
+			nil
+		]; 
+
+	self.jsonResults[@"base64"] = encodedImage;
+	
+	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+	[self.pluginResult setKeepCallbackAsBool:NO]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:command.callbackId];		
+
+}
+
  - (void) save:(CDVInvokedUrlCommand *)command { 
 	
 	////////////////////////////////////
