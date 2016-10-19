@@ -644,8 +644,10 @@
 	// SET VARS
 	//////////////////////////////////// 
 	
+	self.callbackIdSave = command.callbackId;
+
 	NSDictionary *options = [command.arguments objectAtIndex: 0];
-  
+
 	int intMediaWidth = [[options objectForKey:@"mediaWidth"] integerValue];
     int intMediaHeight = [[options objectForKey:@"mediaHeight"] integerValue];
 	int intAvgBitRate = [[options objectForKey:@"avgBitRate"] integerValue];
@@ -1667,7 +1669,7 @@
 	
 	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonProgress];	
 	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
-	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackIdSave];
 
 	//if (fltProgress >= .95)
 	if (fltProgress >= 1.0)
