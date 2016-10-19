@@ -1092,16 +1092,57 @@
 
 		//BOOL foundFile = [[NSFileManager defaultManager] fileExistsAtPath:strFontFilePath];
 		//NSAssert(foundFile, @"The font at: \"%@\" was not found.", strFilePath);
+		NSLog(@"RRRRRRR strFontFilePath: %@", strFontFilePath); 
 
 		CFURLRef fontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFontFilePath, kCFURLPOSIXPathStyle, false);;
 		CGDataProviderRef dataProvider = CGDataProviderCreateWithURL(fontURL);
-		CFRelease(fontURL);
-		CGFontRef graphicsFont = CGFontCreateWithDataProvider(dataProvider);
+		//CFRelease(fontURL);
+		//CGFontRef graphicsFont = CGFontCreateWithDataProvider(dataProvider);
+		//CFRelease(dataProvider);
+		//CGDataProviderRelease(dataProvider);
+		//CTFontRef smallFont = CTFontCreateWithGraphicsFont(graphicsFont, intFontSize, NULL, NULL);
+		//CGFontRelease(graphicsFont);
+		//CFRelease(graphicsFont);
+
+		CFErrorRef error;
+		CGFontRef customFont = CGFontCreateWithDataProvider(dataProvider);
+		if(!CTFontManagerRegisterGraphicsFont(customFont, &error)){
+			CFStringRef errorDescription = CFErrorCopyDescription(error);
+			NSLog(@"Failed to load font: %@", errorDescription);
+			CFRelease(errorDescription);
+		}
+
+		//NSString *strFontName = (__bridge NSString *)CGFontCopyFullName(customFont);
+		NSString *strFontName = (__bridge NSString *)CGFontCopyPostScriptName(customFont);
+
+		//UIFont  *customFont = (__bridge UIFont *)font;
+		//NSString *fontName = customFont.fontName;
+		//NSLog (@"FONT NAME: %@", strFontName);
+
+		CFRelease(customFont);
 		CFRelease(dataProvider);
-		CTFontRef smallFont = CTFontCreateWithGraphicsFont(graphicsFont, intFontSize, NULL, NULL);
-		CFRelease(graphicsFont);
+
+		//NSArray *fontFamilies = [UIFont familyNames];
+		//for (int i = 0; i < [fontFamilies count]; i++) {
+			//NSString *fontFamily = [fontFamilies objectAtIndex:i];
+			//NSArray *fontNames = [UIFont fontNamesForFamilyName:[fontFamilies objectAtIndex:i]];
+			//NSLog (@"%@: %@", fontFamily, fontNames);
+		//}
+
+		UIFont* uifont = [UIFont fontWithName:strFontName size:intFontSize];
+
+		//UIFont  *customFont = (__bridge UIFont *)smallFont;				
+		//CFRelease(smallFont);
+
+		//NSLog(@"FontName: %@", customFont.fontName);
+		//NSLog(@"FontSize: %f", customFont.pointSize);
+
+		//self.customFontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFontFilePath, kCFURLPOSIXPathStyle, false);
+		//self.customFontDataProvider = CGDataProviderCreateWithURL(self.customFontURL);		
+		//self.customFontReference = CGFontCreateWithDataProvider(self.customFontDataProvider);		
+		//self.customFontGraphic = CTFontCreateWithGraphicsFont(self.customFontReference, intFontSize, NULL, NULL);		
 	
-		UIFont *customFont = (__bridge UIFont *)smallFont;		
+		//UIFont *customFont = (__bridge UIFont *)self.customFontGraphic;		
 		//UIFontPlus  *customFont = (__bridge UIFontPlus *)smallFont;				
 		//customFont.fontPath = strFontFilePath;
 		//customFont.fontPath = @"TESTING";
@@ -1109,7 +1150,7 @@
 		//[customFont setFontPath:strFontFilePath];
 		//[customFont test];
 
-		CFRelease(smallFont);
+		//CFRelease(smallFont);
 
 		//UIFontPlus *test = [[UIFontPlus alloc] initWithFrame:CGRectMake(intLabelPosX, intLabelPosY, intLabelWidth, intLabelHeight)];		
 		
@@ -1143,8 +1184,9 @@
 		textField.delegate = self; 
 		
 		//textField.font = [UIFont fontWithName:strFilePath size:intFontSize];
-		textField.font = customFont;
-		textField.fontPath = strFontFilePath;
+		textField.font = uifont;
+		//textField.fontPath = strFontFilePath;
+		textField.fontName = strFontName;
 
 		///////////////////////////////////////// 
 		// ADD PAN GESTURES TO VIEW 
@@ -1260,31 +1302,82 @@
 		// SET FONT SIZE
 		/////////////////////////////////////////
 
+		//NSLog(@"ZZZZZ SET FONT SIZE"); 
+
 		if (intFontSize > 0)
 		{
-			UIFont *currentFont = (UIFont*)textField.font;
+			textField.font = [UIFont fontWithName:textField.fontName size:intFontSize];
 
+			CGRect newFrame = textField.frame;			
+			newFrame.size = CGSizeMake(375, newFrame.size.height);
+			textField.frame = newFrame;			
+		}
+
+		if (intFontSize > 300)
+		{			
+			//NSLog(@"FontSize: %d", intFontSize); 
+
+			//UIFont *currentFont = (UIFont*)textField.font;
+			//textField.font = [currentFont fontWithSize:intFontSize];
+			//textField.font.pointSize = 50;
+
+			//NSLog(@"FontName: %@", currentFont.fontName);
+			//NSLog(@"FontSize: %f", currentFont.pointSize);
+		}
+
+		if (intFontSize > 200)
+		{
+			UIFont *currentFont = (UIFont*)textField.font;
+			
+			NSLog(@"FontName: %@", currentFont.fontName);
+			NSLog(@"FontSize: %f", currentFont.pointSize);
+
+			//NSLog(@"KKKKKK FontSize: %d", intFontSize);  
+
+			//UIFont *currentFont = (UIFont*)textField.font;
+
+			NSString *strFontFilePath;
 			//NSString *strFontFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:strFontPath];		
-			NSString *strFontFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:textField.fontPath];		
+			//NSString *strFontFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:textField.fontPath];		
+			NSLog(@"KKKKKK strFontFilePath: %@", strFontFilePath); 
 
 			CFURLRef fontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFontFilePath, kCFURLPOSIXPathStyle, false);;
 			CGDataProviderRef dataProvider = CGDataProviderCreateWithURL(fontURL);
-			CFRelease(fontURL);
-			CGFontRef graphicsFont = CGFontCreateWithDataProvider(dataProvider);
-			CFRelease(dataProvider);
-			CTFontRef smallFont = CTFontCreateWithGraphicsFont(graphicsFont, intFontSize, NULL, NULL);
-			CFRelease(graphicsFont);
-	
-			UIFont *customFont = (__bridge UIFont *)smallFont;		
-			//UIFontPlus *customFont = (__bridge UIFontPlus *)smallFont;		
-			//customFont.fontPath = strFontFilePath;
+			CFRelease(fontURL); 
+			CGFontRef graphicsFont = CGFontCreateWithDataProvider(dataProvider);  
+			CGDataProviderRelease(dataProvider);
+			CTFontRef smallFont = CTFontCreateWithGraphicsFont(graphicsFont, intFontSize, NULL, NULL); 
+			CGFontRelease(graphicsFont);
+			CFRelease(graphicsFont);  
+
+			UIFont *customFont = (__bridge UIFont *)smallFont;	 
 			CFRelease(smallFont);
 
-			textField.font = customFont;
+			//self.customFontURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge CFStringRef)strFontFilePath, kCFURLPOSIXPathStyle, false);			
+			//self.customFontDataProvider = CGDataProviderCreateWithURL(self.customFontURL);		
+			//CFRelease(self.customFontURL);			
+			//self.customFontReference = CGFontCreateWithDataProvider(self.customFontDataProvider);		
+			//CFRelease(self.customFontDataProvider);
+			//self.customFontGraphic = CTFontCreateWithGraphicsFont(self.customFontReference, intFontSize, NULL, NULL);		
+			//CFRelease(self.customFontReference);
+			//UIFont *customFont = (__bridge UIFont *)self.customFontGraphic;		
+				
+			//UIFontPlus *customFont = (__bridge UIFontPlus *)smallFont;		
+			//customFont.fontPath = strFontFilePath;
+			//CFRelease(self.customFontGraphic); 
 
-			//CGRect newFrame = textField.frame;			
-			//newFrame.size = CGSizeMake(375, newFrame.size.height + 20);
-			//textField.frame = newFrame;			
+			//NSLog(@"FontName: %@", customFont.fontName);
+			//NSLog(@"FontSize: %f", customFont.pointSize);
+
+			//textField.font = customFont;			
+
+			//UIFont *currentFont2 = (UIFont*)textField.font;
+			//NSLog(@"FontName: %@", currentFont2.fontName);
+			//NSLog(@"FontSize: %f", currentFont2.pointSize);
+			
+			CGRect newFrame = textField.frame;			
+			newFrame.size = CGSizeMake(375, newFrame.size.height + 20);
+			textField.frame = newFrame;			
 		}
 
 		///////////////////////////////////////// 
@@ -3786,7 +3879,7 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
 @synthesize pressing = _pressing;
 //@synthesize longPress = _longPress;
 @synthesize longPress = _longPress;    // Optional for Xcode 4.4+
-@synthesize fontPath = _fontPath;    // Optional for Xcode 4.4+
+@synthesize fontName = _fontName;    // Optional for Xcode 4.4+
 
 - (BOOL)isLongPress {
     return _longPress;
@@ -3796,15 +3889,15 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
 }
 
 //Setter method
-- (void)setFontPath:(NSString *)newValue {
-	NSLog(@"Setting fontPath to: %@", newValue);    
-	_fontPath = newValue;
+- (void)setFontName:(NSString *)newValue {
+	NSLog(@"Setting fontName to: %@", newValue);    
+	_fontName = newValue;
 }
 
 //Getter method
-- (NSString *)fontPath {
-	NSLog(@"Returning fontPath: %@", _fontPath);
-    return _fontPath;
+- (NSString *)fontName {
+	NSLog(@"Returning fontName: %@", _fontName);
+    return _fontName;
 }
 
 - (void)longPressed_OLD;
