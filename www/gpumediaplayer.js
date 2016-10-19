@@ -108,7 +108,8 @@
             avgBitRate: options.avgBitRate ? options.avgBitRate : 0,
             gifFramesPerSecond: options.gifFramesPerSecond ? options.gifFramesPerSecond : 0,
             gifPlaybackSpeed: options.gifPlaybackSpeed ? options.gifPlaybackSpeed : 0,
-            gifMaxDuration: options.gifMaxDuration ? options.gifMaxDuration : 0
+            gifMaxDuration: options.gifMaxDuration ? options.gifMaxDuration : 0,
+            saveToCameraRoll: options.saveToCameraRoll ? options.saveToCameraRoll : 0
         };
 
         return cordova.exec(success, fail, "GPUMediaPlayer", "save", [params]);
