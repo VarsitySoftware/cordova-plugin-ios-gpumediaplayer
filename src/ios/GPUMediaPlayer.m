@@ -66,9 +66,11 @@
 	NSString * strFrameThemeURL = [options objectForKey:@"frameThemeURL"];
 
 	int intOverlayEnabled = [[options objectForKey:@"overlayEnabled"] integerValue];
+	int intOverlayHidden = [[options objectForKey:@"overlayHidden"] integerValue];
 	NSString * strOverlayURL = [options objectForKey:@"overlayURL"];
 
 	int intCaptionEnabled = [[options objectForKey:@"captionEnabled"] integerValue];
+	int intCaptionHidden = [[options objectForKey:@"captionHidden"] integerValue];
 	NSString * strCaptionText= [options objectForKey:@"captionText"];
 	int intCaptionFontSize = [[options objectForKey:@"captionFontSize"] integerValue];
 
@@ -375,7 +377,8 @@
 				////////////////////////////////////
 
 				self.frameView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
-		
+				self.frameView.tag = 1;  // LAYER 1
+
 				////////////////////////////////////
 				// ADD IMAGE TO FRAME VIEW
 				////////////////////////////////////
@@ -396,7 +399,8 @@
 	////////////////////////////////////
 	if (self.restart == NO)
 	{
-		if (intCaptionEnabled == 1)
+		if (intCaptionEnabled == 1 || self.mediaCaptionEnabled == YES)  //CAPTION		
+		//if (intCaptionEnabled == 1)
 		{	
 			//https://www.cocoanetics.com/2014/06/object-overlay-on-video/
 
@@ -406,10 +410,19 @@
 			self.captionLabel.text = strCaptionText;		
 			self.captionLabel.font = [UIFont systemFontOfSize:intCaptionFontSize];
 			self.captionLabel.textColor = [UIColor whiteColor];
-			self.captionLabel.tag = 1;
+			self.captionLabel.tag = 2;  // LAYER 2
 			self.captionLabel.hidden = NO;
 			self.captionLabel.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5f];
 			self.captionLabel.textAlignment = UITextAlignmentCenter;
+
+			////////////////////////////////////
+			// HIDE?
+			////////////////////////////////////		
+
+			if (intOverlayHidden == 1)
+			{	
+				self.captionLabel.hidden = YES;
+			}
 
 			[self.mediaMask addSubview:self.captionLabel];
 			self.mediaMaskEnabled = YES;
@@ -421,6 +434,7 @@
 	////////////////////////////////////
 	if (self.restart == NO)
 	{
+		//if (intOverlayEnabled == 1 || self.mediaOverlayEnabled == YES)  //OVERLAY		
 		if (intOverlayEnabled == 1)
 		{	
 			NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:strOverlayURL] options:NSDataReadingUncached error:&error];
@@ -441,12 +455,22 @@
 			////////////////////////////////////
 		
 			self.overlayView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
+			self.overlayView.tag = 3;  // LAYER 3
 
 			////////////////////////////////////
 			// ADD IMAGE TO VIEW
 			////////////////////////////////////		
 		
 			[self.overlayView setImage:overlayImage];
+
+			////////////////////////////////////
+			// HIDE?
+			////////////////////////////////////		
+
+			if (intOverlayHidden == 1)
+			{	
+				self.overlayView.hidden = YES;
+			}
 
 			////////////////////////////////////
 			// ADD VIEW TO MASK
@@ -2342,6 +2366,8 @@
 		self.frameView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)]; 
 	}	
 
+	self.frameView.hidden = NO;
+
 	////////////////////////////////////
 	// ADD IMAGE TO FRAME VIEW
 	////////////////////////////////////
@@ -2363,6 +2389,66 @@
 	}
 
 	self.mediaFrameEnabled = YES;
+}
+
+- (void) toggleCaption:(CDVInvokedUrlCommand *)command {
+
+	///////////////////////////////////////// 
+	// SET VARS 
+	/////////////////////////////////////////	
+
+	NSDictionary *options = [command.arguments objectAtIndex: 0];   
+	
+	int intHide = [[options objectForKey:@"hide"] integerValue];
+
+	if (intHide == 1)
+	{
+		self.captionLabel.hidden = YES;
+	}
+	else
+	{
+		self.captionLabel.hidden = NO;
+	}
+}
+
+- (void) toggleOverlay:(CDVInvokedUrlCommand *)command {
+
+	///////////////////////////////////////// 
+	// SET VARS 
+	/////////////////////////////////////////	
+
+	NSDictionary *options = [command.arguments objectAtIndex: 0];   
+	
+	int intHide = [[options objectForKey:@"hide"] integerValue];
+
+	if (intHide == 1)
+	{
+		self.overlayView.hidden = YES;
+	}
+	else
+	{
+		self.overlayView.hidden = NO;
+	}
+}
+
+- (void) clearFX:(CDVInvokedUrlCommand *)command {
+
+	NSLog(@"ClearFX");
+
+	if (self.frameView != nil)
+	{	
+		self.frameView.hidden = YES;
+	}
+
+	if (self.overlayView != nil)
+	{
+		self.overlayView.hidden = YES;
+	}
+
+	if (self.captionLabel != nil)
+	{
+		self.captionLabel.hidden = YES;
+	}
 }
 
 - (void) changeFrame_OLD:(CDVInvokedUrlCommand *)command {
