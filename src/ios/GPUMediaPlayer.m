@@ -62,6 +62,7 @@
     int intPlayerHeight = [[options objectForKey:@"playerHeight"] integerValue];
 
 	int intFrameEnabled = [[options objectForKey:@"frameEnabled"] integerValue];
+	int intFrameHidden = [[options objectForKey:@"frameHidden"] integerValue];
 	NSString * strFrameShapeURL = [options objectForKey:@"frameShapeURL"];
 	NSString * strFrameThemeURL = [options objectForKey:@"frameThemeURL"];
 
@@ -392,8 +393,18 @@
 				[self.mediaMask addSubview:self.frameView];
 				self.mediaMaskEnabled = YES;
 			}
+
+			////////////////////////////////////
+			// HIDE?
+			////////////////////////////////////		
+
+			if (intFrameHidden == 1)
+			{	
+				self.frameView.hidden = YES;
+			}
 		}
 	}
+
 	////////////////////////////////////
 	// ADD CAPTION?
 	////////////////////////////////////
