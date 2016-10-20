@@ -29,6 +29,7 @@
             playerHeight: options.playerHeight ? options.playerHeight : 0,
 
             captionEnabled: options.captionEnabled ? options.captionEnabled : 0,
+            captionHidden: options.captionHidden ? options.captionHidden : 0,
             captionText: options.captionText ? options.captionText : null,
             captionFontSize: options.captionFontSize ? options.captionFontSize : 0,
 
@@ -37,6 +38,7 @@
             frameThemeURL: options.frameThemeURL ? options.frameThemeURL : null,
 
             overlayEnabled: options.overlayEnabled ? options.overlayEnabled : 0,
+            overlayHidden: options.overlayHidden ? options.overlayHidden : 0,
             overlayURL: options.overlayURL ? options.overlayURL : null,
 
             loop: options.loop ? options.loop : 0
@@ -281,6 +283,38 @@
         };
 
         return cordova.exec(success, fail, "GPUMediaPlayer", "loop", [params]);
+    };
+        
+
+    GPUMediaPlayer.prototype.clearFX = function (success, fail, options)
+    {
+        return cordova.exec(success, fail, "GPUMediaPlayer", "clearFX", null);
+    };
+
+    GPUMediaPlayer.prototype.toggleCaption = function (success, fail, options)
+    {
+        if (!options) {
+            options = {};
+        }
+
+        var params = {
+            hide: options.hide ? options.hide : 0
+        };
+
+        return cordova.exec(success, fail, "GPUMediaPlayer", "toggleCaption", [params]);
+    };
+
+    GPUMediaPlayer.prototype.toggleOverlay = function (success, fail, options)
+    {
+        if (!options) {
+            options = {};
+        }
+
+        var params = {
+            hide: options.hide ? options.hide : 0
+        };
+
+        return cordova.exec(success, fail, "GPUMediaPlayer", "toggleOverlay", [params]);
     };
 
     window.gpuMediaPlayer = new GPUMediaPlayer();
