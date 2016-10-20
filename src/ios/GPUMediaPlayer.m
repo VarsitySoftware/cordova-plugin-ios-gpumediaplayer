@@ -169,10 +169,10 @@
 	{
 		self.loop = YES;
 	}
-	else
-	{
-		self.loop = NO;
-	}
+	//else
+	//{
+		//self.loop = NO;
+	//}
 
 	///////////////////////////////////////// 
 	// USE BENCHMARKING?  SLOWS PERFORMANCE
