@@ -268,7 +268,8 @@
 				[self.mediaMask addSubview:self.frameView];
 				self.mediaMaskEnabled = YES;
 
-				if (strFrameShapeURL != nil && strFrameThemeURL != nil)
+				if (strFrameShapeURL != [NSNull null] && strFrameThemeURL != [NSNull null])		 	
+				//if (strFrameShapeURL && strFrameThemeURL)
 				{
 					////////////////////////////////////
 					// CREATE CUSTOM SHADER STRING
