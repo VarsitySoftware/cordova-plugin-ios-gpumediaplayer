@@ -34,6 +34,7 @@
             captionFontSize: options.captionFontSize ? options.captionFontSize : 0,
 
             frameEnabled: options.frameEnabled ? options.frameEnabled : 0,
+            frameHidden: options.frameHidden ? options.frameHidden : 0,
             frameShapeURL: options.frameShapeURL ? options.frameShapeURL : null,
             frameThemeURL: options.frameThemeURL ? options.frameThemeURL : null,
 
