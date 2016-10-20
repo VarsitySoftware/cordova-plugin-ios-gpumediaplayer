@@ -135,6 +135,8 @@ This property is not key-value observable.
 
 @property(readwrite, nonatomic) BOOL mediaMaskEnabled; 
 @property(readwrite, nonatomic) BOOL mediaFrameEnabled;
+@property(readwrite, nonatomic) BOOL mediaCaptionEnabled;
+@property(readwrite, nonatomic) BOOL mediaOverlayEnabled;
 
 @property (readwrite, nonatomic) CDVPluginResult* pluginResult;
 
@@ -176,6 +178,11 @@ This property is not key-value observable.
 
 -(void)changeFilter:(CDVInvokedUrlCommand *)command;
 -(void)changeFrame:(CDVInvokedUrlCommand *)command;
+
+-(void)toggleCaption:(CDVInvokedUrlCommand *)command;
+-(void)toggleOverlay:(CDVInvokedUrlCommand *)command;
+
+-(void)clearFX:(CDVInvokedUrlCommand *)command;
 
 -(void)addSticker:(CDVInvokedUrlCommand *)command;
 -(void)updateSticker:(CDVInvokedUrlCommand *)command;
