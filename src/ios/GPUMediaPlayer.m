@@ -255,125 +255,6 @@
 			else
 			{
 				////////////////////////////////////
-				// CREATE CUSTOM SHADER STRING
-				////////////////////////////////////
-
-				NSString *const kShaderString = SHADER_STRING
-				(	
-					 precision mediump float;
- 
-					 varying highp vec2 textureCoordinate;
-					 varying highp vec2 textureCoordinate2;
- 
-					 uniform sampler2D inputImageTexture;
-					 uniform sampler2D inputImageTexture2; 
- 
-					 void main() 
-					 { 
-						vec4 shape = texture2D(inputImageTexture, textureCoordinate);
-						vec4 theme = texture2D(inputImageTexture2, textureCoordinate2);
-
-						gl_FragColor = shape;		
-		
-						if (shape.a <= 0.2) 
-						{ 					
-							gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-						}
-						else if (shape.x <= 0.2) 
-						{ 					
-							gl_FragColor = theme; 
-						}
-						else if (shape.x >= 0.8) 
-						{
-							gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);		
-						}   
-					 }
-				);  
-
-				////////////////////////////////////
-				// CREATE A TWO INPUT FILTER USING THE CUSTOM SHADER STRING
-				////////////////////////////////////
-
-				GPUImageTwoInputFilter * frameFilter = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kShaderString];
-
-				////////////////////////////////////
-				// GET SHAPE FILE FROM URL as NSDATA
-				////////////////////////////////////
-		
-				NSData* dataShape = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameShapeURL] options:NSDataReadingUncached error:&error];
-				if (error) {
-					NSLog(@"%@", [error localizedDescription]);			
-				} else {
-					NSLog(@"Shape of size %i has loaded successfully!", dataShape.length);
-					//NSLog(@"length: %i", dataShape.length); 
-				}
-
-				////////////////////////////////////
-				// CONVERT NSDATA TO UIImage
-				////////////////////////////////////
-
-				UIImage *shapeImage = [UIImage imageWithData:dataShape];
-		
-				////////////////////////////////////
-				// CONVERT UIImage to JPEG
-				////////////////////////////////////
-
-				NSData *jpgDataHighestCompressionQuality = UIImageJPEGRepresentation(shapeImage, 1.0);
-				shapeImage = [UIImage imageWithData:jpgDataHighestCompressionQuality];
-
-				////////////////////////////////////
-				// MAKE WHITE COLOR TRANSPARENT IN SHAPE
-				// THIS IS NECESSARY WHEN SAVING MASK
-				//http://stackoverflow.com/questions/19443311/how-to-make-one-colour-transparent-in-uiimage
-				// WTF is colorMasking var?!?
-				// element #1 is R-MIN, element #2 is R-MAX, element #3 is G-MIN, element #4 is G-MAX, element #5 is B-MIN, element #6 is B-MAX
-				////////////////////////////////////
-
-				shapeImage = [self changeWhiteColorTransparent: shapeImage];
-
-				////////////////////////////////////
-				// GET THEME FILE FROM URL as NSDATA
-				////////////////////////////////////
-
-				NSData* dataTheme = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameThemeURL] options:NSDataReadingUncached error:&error];
-				if (error) {
-					NSLog(@"%@", [error localizedDescription]);			
-				} else {
-					NSLog(@"Theme of size %i has loaded successfully!", dataTheme.length);			
-				}
-
-				////////////////////////////////////
-				// CONVERT NSDATA TO UIImage
-				////////////////////////////////////
-
-				UIImage *themeImage = [UIImage imageWithData:dataTheme]; 
-
-				////////////////////////////////////
-				// CREATE GPUImagePictures from SHAPE & THEME
-				////////////////////////////////////
-
-				GPUImagePicture *shapePicture = [[GPUImagePicture alloc] initWithImage:shapeImage smoothlyScaleOutput:YES];
-				GPUImagePicture *themePicture = [[GPUImagePicture alloc] initWithImage:themeImage smoothlyScaleOutput:YES];
-		 
-				////////////////////////////////////
-				// ADD SHAPE & THEME TO FRAME FILTER & PROCESS
-				////////////////////////////////////
-
-				[shapePicture addTarget:frameFilter];	 
-				[themePicture addTarget:frameFilter];		 
-
-				[frameFilter useNextFrameForImageCapture];
-
-				[shapePicture processImage];
-				[themePicture processImage]; 
-
-				////////////////////////////////////
-				// GET COMBINED SHAPE & THEME IMAGE
-				////////////////////////////////////
-
-				UIImage *frameImage = [frameFilter imageFromCurrentFramebuffer];
-
-				////////////////////////////////////
 				// CREATE FRAME VIEW
 				////////////////////////////////////
 
@@ -381,17 +262,140 @@
 				self.frameView.tag = 1;  // LAYER 1
 
 				////////////////////////////////////
-				// ADD IMAGE TO FRAME VIEW
-				////////////////////////////////////
-		 
-				[self.frameView setImage:frameImage];		
-
-				////////////////////////////////////
 				// ADD FRAME VIEW TO MASK
 				////////////////////////////////////
 		
 				[self.mediaMask addSubview:self.frameView];
 				self.mediaMaskEnabled = YES;
+
+				if (strFrameShapeURL != nil && strFrameThemeURL != nil)
+				{
+					////////////////////////////////////
+					// CREATE CUSTOM SHADER STRING
+					////////////////////////////////////
+
+					NSString *const kShaderString = SHADER_STRING
+					(	
+						 precision mediump float;
+ 
+						 varying highp vec2 textureCoordinate;
+						 varying highp vec2 textureCoordinate2;
+ 
+						 uniform sampler2D inputImageTexture;
+						 uniform sampler2D inputImageTexture2; 
+ 
+						 void main() 
+						 { 
+							vec4 shape = texture2D(inputImageTexture, textureCoordinate);
+							vec4 theme = texture2D(inputImageTexture2, textureCoordinate2);
+
+							gl_FragColor = shape;		
+		
+							if (shape.a <= 0.2) 
+							{ 					
+								gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+							}
+							else if (shape.x <= 0.2) 
+							{ 					
+								gl_FragColor = theme; 
+							}
+							else if (shape.x >= 0.8) 
+							{
+								gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);		
+							}   
+						 }
+					);  
+
+					////////////////////////////////////
+					// CREATE A TWO INPUT FILTER USING THE CUSTOM SHADER STRING
+					////////////////////////////////////
+
+					GPUImageTwoInputFilter * frameFilter = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kShaderString];
+
+					////////////////////////////////////
+					// GET SHAPE FILE FROM URL as NSDATA
+					////////////////////////////////////
+		
+					NSData* dataShape = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameShapeURL] options:NSDataReadingUncached error:&error];
+					if (error) {
+						NSLog(@"%@", [error localizedDescription]);			
+					} else {
+						NSLog(@"Shape of size %i has loaded successfully!", dataShape.length);
+						//NSLog(@"length: %i", dataShape.length); 
+					}
+
+					////////////////////////////////////
+					// CONVERT NSDATA TO UIImage
+					////////////////////////////////////
+
+					UIImage *shapeImage = [UIImage imageWithData:dataShape];
+		
+					////////////////////////////////////
+					// CONVERT UIImage to JPEG
+					////////////////////////////////////
+
+					NSData *jpgDataHighestCompressionQuality = UIImageJPEGRepresentation(shapeImage, 1.0);
+					shapeImage = [UIImage imageWithData:jpgDataHighestCompressionQuality];
+
+					////////////////////////////////////
+					// MAKE WHITE COLOR TRANSPARENT IN SHAPE
+					// THIS IS NECESSARY WHEN SAVING MASK
+					//http://stackoverflow.com/questions/19443311/how-to-make-one-colour-transparent-in-uiimage
+					// WTF is colorMasking var?!?
+					// element #1 is R-MIN, element #2 is R-MAX, element #3 is G-MIN, element #4 is G-MAX, element #5 is B-MIN, element #6 is B-MAX
+					////////////////////////////////////
+
+					shapeImage = [self changeWhiteColorTransparent: shapeImage];
+
+					////////////////////////////////////
+					// GET THEME FILE FROM URL as NSDATA
+					////////////////////////////////////
+
+					NSData* dataTheme = [NSData dataWithContentsOfURL:[NSURL URLWithString:strFrameThemeURL] options:NSDataReadingUncached error:&error];
+					if (error) {
+						NSLog(@"%@", [error localizedDescription]);			
+					} else {
+						NSLog(@"Theme of size %i has loaded successfully!", dataTheme.length);			
+					}
+
+					////////////////////////////////////
+					// CONVERT NSDATA TO UIImage
+					////////////////////////////////////
+
+					UIImage *themeImage = [UIImage imageWithData:dataTheme]; 
+
+					////////////////////////////////////
+					// CREATE GPUImagePictures from SHAPE & THEME
+					////////////////////////////////////
+
+					GPUImagePicture *shapePicture = [[GPUImagePicture alloc] initWithImage:shapeImage smoothlyScaleOutput:YES];
+					GPUImagePicture *themePicture = [[GPUImagePicture alloc] initWithImage:themeImage smoothlyScaleOutput:YES];
+		 
+					////////////////////////////////////
+					// ADD SHAPE & THEME TO FRAME FILTER & PROCESS
+					////////////////////////////////////
+
+					[shapePicture addTarget:frameFilter];	 
+					[themePicture addTarget:frameFilter];		 
+
+					[frameFilter useNextFrameForImageCapture];
+
+					[shapePicture processImage];
+					[themePicture processImage]; 
+
+					////////////////////////////////////
+					// GET COMBINED SHAPE & THEME IMAGE
+					////////////////////////////////////
+
+					UIImage *frameImage = [frameFilter imageFromCurrentFramebuffer];
+
+					////////////////////////////////////
+					// ADD IMAGE TO FRAME VIEW
+					////////////////////////////////////
+		 
+					[self.frameView setImage:frameImage];		
+				}
+				
 			}
 
 			////////////////////////////////////
