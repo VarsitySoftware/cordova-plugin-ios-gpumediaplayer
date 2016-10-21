@@ -93,14 +93,17 @@
 	// SET ROOT VIEW
 	/////////////////////////////////////////
 
-	self.rootView = [[[UIApplication sharedApplication] keyWindow] rootViewController].view;
-		
-	////////////////////////////////////
-	// ADD TAP RECOGNIZER TO ROOT VIEW SO KEYBOARD GETS DISMISSED IF ADDING LABELS
-	////////////////////////////////////
+	if (self.rootView == nil)
+	{
+		self.rootView = [[[UIApplication sharedApplication] keyWindow] rootViewController].view;
 
-	UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]  initWithTarget:self action:@selector(dismissKeyboard)];
-	[self.rootView addGestureRecognizer:tap];	
+		////////////////////////////////////
+		// ADD TAP RECOGNIZER TO ROOT VIEW SO KEYBOARD GETS DISMISSED IF ADDING LABELS
+		////////////////////////////////////
+
+		UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]  initWithTarget:self action:@selector(dismissKeyboard)];
+		[self.rootView addGestureRecognizer:tap];	
+	}	
 
 	////////////////////////////////////////
 	// SET MEDIA TYPE
@@ -527,16 +530,21 @@
 		self.scrollView.backgroundColor = [UIColor blackColor]; 
 		//[self.scrollView addSubview:self.mediaContainer];
 		[self.rootView addSubview:self.scrollView];
+
+		[self.scrollView addSubview:self.mediaContainer];
 	}
 
-	[self.scrollView addSubview:self.mediaContainer];
+	//[self.scrollView addSubview:self.mediaContainer];
 
 	////////////////////////////////////
 	// SAVE BASE FRAMES - FOR USE IF FULLSCREEN IS CLICKED
 	////////////////////////////////////
 
-	self.currentFrameScrollView = self.scrollView.frame;
-	self.currentFrameMediaContainer = self.mediaContainer.frame;
+	if (self.fullScreen == NO)
+	{
+		self.currentFrameScrollView = self.scrollView.frame;
+		self.currentFrameMediaContainer = self.mediaContainer.frame;
+	}
 
 	////////////////////////////////////
 	// USE AUDIO PLAYER?
@@ -735,6 +743,8 @@
 	// SET VARS
 	//////////////////////////////////// 
 
+	self.fullScreen = YES;
+
 	self.callbackIdFullScreen = command.callbackId;
 	
 	NSDictionary *options = [command.arguments objectAtIndex: 0];
@@ -839,6 +849,8 @@
 	//NSLog(@"you clicked on button %@", sender.tag);
 
 	NSLog(@"Clicked on close button!!");
+
+	self.fullScreen = NO;
 
 	//UIButton *btnClose = (UIButton*)[self.scrollView viewWithTag:10];
 	//[btnClose removeFromSuperview];
