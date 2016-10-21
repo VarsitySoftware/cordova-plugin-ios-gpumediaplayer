@@ -184,18 +184,27 @@
 	// CREATE MEDIA CONTAINER
 	/////////////////////////////////////////
 
-	self.mediaContainer = [[UIView alloc] initWithFrame:CGRectMake(intMediaPosX, intMediaPosY, intMediaWidth, intMediaHeight)];
-	[self addMovementGesturesToView:self.mediaContainer];
+	if (self.mediaContainer == nil)
+	{
+		self.mediaContainer = [[UIView alloc] initWithFrame:CGRectMake(intMediaPosX, intMediaPosY, intMediaWidth, intMediaHeight)];
+		[self addMovementGesturesToView:self.mediaContainer];
+	}
+
+	//self.mediaContainer = [[UIView alloc] initWithFrame:CGRectMake(intMediaPosX, intMediaPosY, intMediaWidth, intMediaHeight)];
+	//[self addMovementGesturesToView:self.mediaContainer];
 	
 	///////////////////////////////////////// 
 	// CREATE MEDIA VIEW
 	/////////////////////////////////////////
 
-	if (self.mediaContainer == nil)
+	if (self.mediaView == nil)
 	{
-		self.mediaView = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)];
+		self.mediaView = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)];		
 		[self.mediaContainer addSubview:self.mediaView];
 	}
+
+	//self.mediaView = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)];		
+	//[self.mediaContainer addSubview:self.mediaView];
 
 	///////////////////////////////////////// 
 	// CREATE MEDIA MASK
