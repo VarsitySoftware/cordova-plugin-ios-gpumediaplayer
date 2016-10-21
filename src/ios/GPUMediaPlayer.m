@@ -700,8 +700,8 @@
 		}		
 	}  
 	
-	[self.scrollView removeFromSuperview];
-	self.scrollView = nil;
+	//[self.scrollView removeFromSuperview];
+	//self.scrollView = nil;
  }
 
   - (void) destroy:(CDVInvokedUrlCommand *)command { 	
@@ -724,6 +724,9 @@
 	self.mediaMask = nil;
 	self.captionLabel = nil;
 	self.mediaLocalURL = nil;
+
+	[self.scrollView removeFromSuperview];
+	self.scrollView = nil;
  }
 
  - (void) hide:(CDVInvokedUrlCommand *)command {	
