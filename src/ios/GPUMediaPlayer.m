@@ -722,8 +722,8 @@
 	// SET VARS
 	//////////////////////////////////// 
 
-	//NSString* callbackId = command.callbackId;
-
+	self.callbackIdFullScreen = command.callbackId;
+	
 	NSDictionary *options = [command.arguments objectAtIndex: 0];
 
 	int intOrientation = [[options objectForKey:@"orientation"] integerValue];
@@ -841,6 +841,20 @@
 
 	self.scrollView.frame = self.currentFrameScrollView;		
 	self.mediaContainer.frame = self.currentFrameMediaContainer;		
+
+	self.jsonResults = [ [NSMutableDictionary alloc]
+        initWithObjectsAndKeys :
+		nil, @"success",        
+        nil
+    ]; 
+
+	//self.jsonResults[@"id"] = [NSString stringWithFormat:@"%i", self.currentTag];
+	self.jsonResults[@"success"] = [NSString stringWithFormat:@"%i", 1];	
+
+	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+	[self.pluginResult setKeepCallbackAsBool:NO]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackIdFullScreen];		
 
  }
 
