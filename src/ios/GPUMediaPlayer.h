@@ -122,6 +122,7 @@ This property is not key-value observable.
 @property (copy)NSString* callbackIdFullScreen;
 
 @property(readwrite, nonatomic) BOOL loop;
+@property(readwrite, nonatomic) BOOL fullScreen;
 
 @property (nonatomic, strong)AVAudioPlayer *audioPlayer;
 @property (strong, nonatomic) UIView* rootView;
