@@ -119,6 +119,7 @@ This property is not key-value observable.
 @property (copy)NSString* callbackIdAddSticker;
 @property (copy)NSString* callbackIdAddLabel;
 @property (copy)NSString* callbackIdSave;
+@property (copy)NSString* callbackIdFullScreen;
 
 @property(readwrite, nonatomic) BOOL loop;
 
