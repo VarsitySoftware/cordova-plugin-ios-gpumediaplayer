@@ -191,8 +191,11 @@
 	// CREATE MEDIA VIEW
 	/////////////////////////////////////////
 
-	self.mediaView = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)];		
-	[self.mediaContainer addSubview:self.mediaView];
+	if (self.mediaContainer == nil)
+	{
+		self.mediaView = [[GPUImageView alloc] initWithFrame:CGRectMake(0, 0, intMediaWidth, intMediaHeight)];
+		[self.mediaContainer addSubview:self.mediaView];
+	}
 
 	///////////////////////////////////////// 
 	// CREATE MEDIA MASK
@@ -699,6 +702,7 @@
 	movieWriter = nil;
 	saveFile = nil;
 
+	self.loop = NO;
 	self.seekTo = 0;
 	self.mediaMask = nil;
 	self.captionLabel = nil;
