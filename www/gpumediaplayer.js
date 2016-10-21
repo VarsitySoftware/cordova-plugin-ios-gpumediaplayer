@@ -317,4 +317,19 @@
         return cordova.exec(success, fail, "GPUMediaPlayer", "toggleOverlay", [params]);
     };
 
+    GPUMediaPlayer.prototype.fullScreen = function (success, fail, options)
+    {
+        if (!options) {
+            options = {};
+        }
+
+        var params = {
+            orientation: options.orientation ? options.orientation : 0,
+            mediaWidth: options.mediaWidth ? options.mediaWidth : 0,
+            mediaHeight: options.mediaHeight ? options.mediaHeight : 0
+        };
+
+        return cordova.exec(success, fail, "GPUMediaPlayer", "fullScreen", [params]);
+    };
+
     window.gpuMediaPlayer = new GPUMediaPlayer();
