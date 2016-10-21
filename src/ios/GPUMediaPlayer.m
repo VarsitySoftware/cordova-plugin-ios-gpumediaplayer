@@ -687,6 +687,7 @@
 	self.seekTo = 0;
 	self.mediaMask = nil;
 	self.captionLabel = nil;
+	self.mediaLocalURL = nil;
  }
 
  - (void) hide:(CDVInvokedUrlCommand *)command {	
