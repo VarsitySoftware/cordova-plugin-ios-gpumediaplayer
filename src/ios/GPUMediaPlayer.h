@@ -154,6 +154,9 @@ This property is not key-value observable.
 
 @property(readwrite, nonatomic) BOOL restart;
 
+@property(readwrite, nonatomic) CGRect currentFrameScrollView; 
+@property(readwrite, nonatomic) CGRect currentFrameMediaContainer;
+
 //@property(readwrite, nonatomic) CFURLRef customFontURL;
 //@property(readwrite, nonatomic) CGDataProviderRef customFontDataProvider;
 //@property(readwrite, nonatomic) CGFontRef customFontReference;
@@ -173,6 +176,7 @@ This property is not key-value observable.
 -(void)download:(CDVInvokedUrlCommand *)command;
 -(void)filter:(CDVInvokedUrlCommand *)command;
 -(void)preview:(CDVInvokedUrlCommand *)command;
+-(void)fullScreen:(CDVInvokedUrlCommand *)command;
 
 -(void)begin; 
 
