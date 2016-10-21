@@ -509,11 +509,23 @@
 	// CREATE SCROLL VIEW - ALLOWS PAN AND PINCH
 	////////////////////////////////////
 
-	self.scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(intPlayerPosX, intPlayerPosY, intPlayerWidth, intPlayerHeight)]; 	
-	self.scrollView.backgroundColor = [UIColor blackColor]; 
+	if (self.scrollView == nil)
+	{
+		self.scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(intPlayerPosX, intPlayerPosY, intPlayerWidth, intPlayerHeight)]; 	
+		self.scrollView.backgroundColor = [UIColor blackColor]; 
+		//[self.scrollView addSubview:self.mediaContainer];
+		[self.rootView addSubview:self.scrollView];
+	}
+
 	[self.scrollView addSubview:self.mediaContainer];
-	[self.rootView addSubview:self.scrollView];
-	
+
+	////////////////////////////////////
+	// SAVE BASE FRAMES - FOR USE IF FULLSCREEN IS CLICKED
+	////////////////////////////////////
+
+	self.currentFrameScrollView = self.scrollView.frame;
+	self.currentFrameMediaContainer = self.mediaContainer.frame;
+
 	////////////////////////////////////
 	// USE AUDIO PLAYER?
 	////////////////////////////////////
@@ -674,6 +686,9 @@
 
   - (void) destroy:(CDVInvokedUrlCommand *)command { 	
 	
+	mediaFile.pause = NO;
+	mediaFile.stop = NO;
+
 	[self stop:command];	
 
 	mediaFile = nil;
@@ -698,6 +713,135 @@
   - (void) show:(CDVInvokedUrlCommand *)command {	
 	
 	[self.scrollView setHidden:NO];	
+ }
+
+ - (void) fullScreen:(CDVInvokedUrlCommand *)command {	
+	
+	NSLog(@"going fullScreen");
+	////////////////////////////////////
+	// SET VARS
+	//////////////////////////////////// 
+
+	//NSString* callbackId = command.callbackId;
+
+	NSDictionary *options = [command.arguments objectAtIndex: 0];
+
+	int intOrientation = [[options objectForKey:@"orientation"] integerValue];
+	int intMediaWidth = [[options objectForKey:@"mediaWidth"] integerValue];
+	int intMediaHeight = [[options objectForKey:@"mediaHeight"] integerValue];
+
+	int intWindowWidth = self.rootView.frame.size.width;
+	int intWindowHeight = self.rootView.frame.size.height;
+
+	float fltRatio = (float)intWindowWidth / (float)intMediaWidth;
+
+	//self.currentFrameScrollView = self.scrollView.frame;
+	//self.currentFrameMediaContainer = self.mediaContainer.frame;
+	
+	CGRect newFrame = CGRectMake(0, 0, intWindowWidth, intWindowHeight);	
+	self.scrollView.frame = newFrame;		
+
+	//CGAffineTransform resetTransform = CGAffineTransformScale(self.mediaContainer.transform, 1, 1);
+	//self.mediaContainer.transform = resetTransform;
+
+	// CLEAR ANY PANS OR ZOOMS
+	self.mediaContainer.transform = CGAffineTransformIdentity;
+
+	if (intOrientation == 2) // 2 == landscape so rotate
+	{
+		NSLog(@"ROTATE!"); 
+
+		fltRatio = (float)intWindowHeight / (float)intMediaWidth;
+
+		NSLog(@"intMediaWidth %d", intMediaWidth);
+		NSLog(@"intWindowWidth %d", intWindowWidth);
+		NSLog(@"intWindowHeight %d", intWindowHeight);
+		NSLog(@"fltRatio %f", fltRatio);
+
+		//CGRect mediaFrame = CGRectMake(self.rootView.frame.size.height, 0, self.rootView.frame.size.height, self.rootView.frame.size.width);	
+		//CGRect mediaFrame = CGRectMake(0, 0, self.rootView.frame.size.height, self.rootView.frame.size.width);	
+		CGRect mediaFrame = CGRectMake(0, -120, intWindowHeight, intWindowWidth);	
+		self.mediaContainer.frame = mediaFrame;			
+
+		float degrees = 270; //the value in degrees
+		self.mediaContainer.transform = CGAffineTransformMakeRotation(degrees * M_PI/180);
+
+		///////////////
+		//float currentScale = [[self.mediaContainer.layer valueForKeyPath:@"transform.scale.x"] floatValue];
+
+        // Variables to adjust the max/min values of zoom
+        //float minScale = 1.0;
+        //float maxScale = 4.0;
+        //float zoomSpeed = .5;
+
+        //float deltaScale = pinchGesture.scale;
+
+        // You need to translate the zoom to 0 (origin) so that you
+        // can multiply a speed factor and then translate back to "zoomSpace" around 1
+        //deltaScale = ((deltaScale - 1) * zoomSpeed) + 1;
+
+        // Limit to min/max size (i.e maxScale = 2, current scale = 2, 2/2 = 1.0)
+        //  A deltaScale is ~0.99 for decreasing or ~1.01 for increasing
+        //  A deltaScale of 1.0 will maintain the zoom size
+        //deltaScale = MIN(deltaScale, maxScale / currentScale);
+        //deltaScale = MAX(deltaScale, minScale / currentScale);
+
+        //CGAffineTransform zoomTransform = CGAffineTransformScale(self.mediaContainer.transform, 1.6, 1.6);
+		CGAffineTransform zoomTransform = CGAffineTransformScale(self.mediaContainer.transform, fltRatio, fltRatio);
+        self.mediaContainer.transform = zoomTransform;
+
+        // Reset to 1 for scale delta's
+        //  Note: not 0, or we won't see a size: 0 * width = 0 
+        //pinchGesture.scale = 1;
+
+		//[self.mediaView setInputRotation:kGPUImageRotateLeft atIndex:0];	
+	}
+
+	int intButtonPosY = intWindowHeight - 75; // 64 px for button plus some padding
+	//UIButton *btnClose= [UIButton buttonWithType:UIButtonTypeRoundedRect];
+	UIButton *btnClose = [UIButton buttonWithType:UIButtonTypeCustom];
+	[btnClose addTarget:self action:@selector(closeFullScreen:) forControlEvents:UIControlEventTouchUpInside];
+	[btnClose setFrame:CGRectMake(0, intButtonPosY, 64, 64)];
+	[btnClose.layer setBorderWidth:0];
+	//[btnClose setTitle:@"Close" forState:UIControlStateNormal];
+	[btnClose setExclusiveTouch:YES];
+	//btnClose.tag = 10; // close button tag
+	//[btnClose setbackgroundImage:[UIImage imageNamed:@"XXX.png"] forState:UIControlStateNormal];
+	
+	NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/img/icon_resize.png"];		
+	UIImage *image =  [UIImage imageWithContentsOfFile: strFilePath];
+	
+	//NSString *strImageName = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/img/icon_resize.png"];		
+	//NSString *strImagePath = [NSString stringWithFormat:@"file://%@", strImageName];
+	
+	//UIImage *image = [UIImage imageWithContentsOfFile:strImagePath];
+	[btnClose setBackgroundImage:image forState:UIControlStateNormal];
+
+	[self.scrollView addSubview:btnClose];
+
+ }
+
+ -(void) closeFullScreen:(UIButton*)sender
+ {
+	//NSLog(@"you clicked on button %@", sender.tag);
+
+	NSLog(@"Clicked on close button!!");
+
+	//UIButton *btnClose = (UIButton*)[self.scrollView viewWithTag:10];
+	//[btnClose removeFromSuperview];
+	[(UIButton*)sender removeFromSuperview];
+		
+	self.mediaContainer.transform = CGAffineTransformIdentity;
+
+	//float degrees = 0; //the value in degrees
+	//self.mediaContainer.transform = CGAffineTransformMakeRotation(degrees * M_PI/180);
+
+	//CGAffineTransform zoomTransform = CGAffineTransformScale(self.mediaContainer.transform, 1.0, 1.0);
+    //self.mediaContainer.transform = zoomTransform;
+
+	self.scrollView.frame = self.currentFrameScrollView;		
+	self.mediaContainer.frame = self.currentFrameMediaContainer;		
+
  }
 
  - (void) download:(CDVInvokedUrlCommand *)command { 	
