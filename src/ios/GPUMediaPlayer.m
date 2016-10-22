@@ -730,7 +730,7 @@
 	self.mediaLocalURL = nil;
 	
 	[self.mediaContainer removeFromSuperview];
-	self.mediaContainer = nil
+	self.mediaContainer = nil;
 
 	[self.mediaView removeFromSuperview];
 	self.mediaView = nil;
