@@ -191,6 +191,8 @@
 	{
 		self.mediaContainer = [[UIView alloc] initWithFrame:CGRectMake(intMediaPosX, intMediaPosY, intMediaWidth, intMediaHeight)];
 		[self addMovementGesturesToView:self.mediaContainer];
+
+		self.currentFrameMediaContainer = self.mediaContainer.frame;
 	}
 
 	//self.mediaContainer = [[UIView alloc] initWithFrame:CGRectMake(intMediaPosX, intMediaPosY, intMediaWidth, intMediaHeight)];
@@ -532,6 +534,8 @@
 		[self.rootView addSubview:self.scrollView];
 
 		[self.scrollView addSubview:self.mediaContainer];
+
+		self.currentFrameScrollView = self.scrollView.frame;		
 	}
 
 	//[self.scrollView addSubview:self.mediaContainer];
@@ -540,11 +544,11 @@
 	// SAVE BASE FRAMES - FOR USE IF FULLSCREEN IS CLICKED
 	////////////////////////////////////
 
-	if (self.fullScreen == NO)
-	{
-		self.currentFrameScrollView = self.scrollView.frame;
-		self.currentFrameMediaContainer = self.mediaContainer.frame;
-	}
+	//if (self.fullScreen == NO)
+	//{
+		//self.currentFrameScrollView = self.scrollView.frame;
+		//self.currentFrameMediaContainer = self.mediaContainer.frame;
+	//}
 
 	////////////////////////////////////
 	// USE AUDIO PLAYER?
@@ -724,9 +728,28 @@
 	self.mediaMask = nil;
 	self.captionLabel = nil;
 	self.mediaLocalURL = nil;
+	
+	[self.mediaContainer removeFromSuperview];
+	self.mediaContainer = nil
+
+	[self.mediaView removeFromSuperview];
+	self.mediaView = nil;
+
+	[self.mediaMask removeFromSuperview];
+	self.mediaMask = nil;	
 
 	[self.scrollView removeFromSuperview];
 	self.scrollView = nil;
+
+	[self.scrollView removeFromSuperview];
+	self.scrollView = nil;
+
+	[self.overlayView removeFromSuperview];
+	self.overlayView = nil;
+
+	[self.frameView removeFromSuperview];
+	self.frameView = nil;
+
  }
 
  - (void) hide:(CDVInvokedUrlCommand *)command {	
