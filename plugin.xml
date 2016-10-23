@@ -58,7 +58,6 @@
          <framework src="AVFoundation.framework" />
          <framework src="Foundation.framework" />
          <framework src="MobileCoreServices.framework" />
-	 <framework src="CoreGraphics.framework" />
 	     
          <framework src="src/ios/GPUImage.framework" custom="true"/>
          
