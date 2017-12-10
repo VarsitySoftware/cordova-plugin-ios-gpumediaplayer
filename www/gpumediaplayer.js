@@ -326,7 +326,8 @@
         var params = {
             orientation: options.orientation ? options.orientation : 0,
             mediaWidth: options.mediaWidth ? options.mediaWidth : 0,
-            mediaHeight: options.mediaHeight ? options.mediaHeight : 0
+            mediaHeight: options.mediaHeight ? options.mediaHeight : 0,
+            closeIconPath: options.closeIconPath ? options.closeIconPath : null,
         };
 
         return cordova.exec(success, fail, "GPUMediaPlayer", "fullScreen", [params]);
