@@ -779,6 +779,8 @@
 	int intMediaWidth = [[options objectForKey:@"mediaWidth"] integerValue];
 	int intMediaHeight = [[options objectForKey:@"mediaHeight"] integerValue];
 
+	NSString * strCloseIconPath = [options objectForKey:@"closeIconPath"];
+	
 	int intWindowWidth = self.rootView.frame.size.width;
 	int intWindowHeight = self.rootView.frame.size.height;
 
@@ -857,7 +859,8 @@
 	//btnClose.tag = 10; // close button tag
 	//[btnClose setbackgroundImage:[UIImage imageNamed:@"XXX.png"] forState:UIControlStateNormal];
 	
-	NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/img/icon_resize.png"];		
+	//NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/img/icon_resize.png"];		
+	NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent: strCloseIconPath];		
 	UIImage *image =  [UIImage imageWithContentsOfFile: strFilePath];
 	
 	//NSString *strImageName = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/img/icon_resize.png"];		
