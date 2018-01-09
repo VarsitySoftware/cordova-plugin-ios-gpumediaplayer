@@ -1,0 +1,20 @@
+{
+    "version": "0.0.1",
+    "name": "cordova-ios-gpumediaplayer",
+    "cordova_name": "IOS GPU Media Player",
+    "description": "IOS GPU Media Player",
+    "license": "MIT",
+    "repo": "https://github.com/VarsitySoftware/cordova-plugin-ios-gpumediaplayer.git",
+    "keywords": [
+        "cordova",
+        "ios",
+        "UIStatusBarHidden",
+        "UIViewControllerBasedStatusBarAppearance",
+        "ios9"
+    ],
+    "platforms": [
+        "ios"
+    ],
+    "engines": [],
+    "englishdoc": ""
+}
