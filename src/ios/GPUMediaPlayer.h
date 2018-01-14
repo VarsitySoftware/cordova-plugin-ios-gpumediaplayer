@@ -45,13 +45,17 @@
 @property(readwrite, nonatomic) BOOL pause;
 @property(readwrite, nonatomic) BOOL stop;
 
-@property(readwrite, nonatomic) int timeElapsed;
+@property(readwrite, nonatomic) float timeElapsed;
+@property(readwrite, nonatomic) long long startTime;
+@property(readwrite, nonatomic) long long checkTime;
 @property(readwrite, nonatomic) float currentTime;
 @property(readwrite, nonatomic) int currentTimeInSecs;
 @property(readwrite, nonatomic) float duration;
 
 @property(readwrite, nonatomic) float fpsInput;
-@property(readwrite, nonatomic) int fpsOutput; 
+@property(readwrite, nonatomic) int fpsOutput;
+@property(readwrite, nonatomic) int frameNumber;
+@property(readwrite, nonatomic) int frameNumberEstimate;
 @property(readwrite, nonatomic) int frameSkipper;
 @property(readwrite, nonatomic) int skipRate;
 
@@ -69,7 +73,7 @@
 */
 @property(readwrite, nonatomic) BOOL shouldRepeat;
 
-/** This specifies the progress of the process on a scale from 0 to 1.0. A value of 0 means the process has not yet begun, A value of 1.0 means the conversaion is complete.
+/** This specifies the progress of the process on a scale from 0 to 1.0. A value of 0 means the process has not yet begun, A value of 1.0 means the conversion is complete.
 This property is not key-value observable.
 */
 @property(readonly, nonatomic) float progress;
