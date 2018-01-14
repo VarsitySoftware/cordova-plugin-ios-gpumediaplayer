@@ -127,6 +127,16 @@
 		self.mediaLocalURL = [self saveLocalFileFromRemoteUrl: mediaRemoteURL extension:strMediaFileExtension]; 
 	}
 
+  ///////////////////////////////////////// 
+	// SEND A RESPONSE TO SIGNAL THAT MEDIA FILE HAS BEEN DOWNLOADED
+	/////////////////////////////////////////
+  
+  self.jsonResults[@"downloadComplete"] = [NSString stringWithFormat:@"%i", 1];	
+	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];		
+
+
 	/////////////////////////////////////////
 	// GET FRAME RATE (FPS) OF MEDIA FILE
 	/////////////////////////////////////////  
@@ -135,7 +145,7 @@
 	AVAssetTrack * videoAssetTrack = [mediaAsset tracksWithMediaType: AVMediaTypeVideo].firstObject;
 	float mediaFPS = videoAssetTrack.nominalFrameRate;
 	
-	NSLog(@"FPS is  : %f ", videoAssetTrack.nominalFrameRate);
+	NSLog(@"NOMINAL FPS is  : %f ", videoAssetTrack.nominalFrameRate);
 
 	/////////////////////////////////////////
 	// CREATE MEDIA FILE INSTANCE FROM LOCAL FILE
@@ -149,7 +159,7 @@
 	mediaFile.currentTimeInSecs = 0;
 	mediaFile.frameSkipper = 1;
 	mediaFile.timeElapsed = 0;
-
+    
 	mediaFile.fpsOutput = intFramesPerSecond;	
 	mediaFile.fpsInput = mediaFPS;
 
@@ -562,10 +572,22 @@
 		self.audioPlayer.delegate  = self;	
 
 		if (self.seekTo > 0)
-		{
+		{      
 			[self.audioPlayer setCurrentTime:self.seekTo];		
 		}
-	}
+
+    ////////////////////////////////////
+	  // ESTIMATE TOTAL NUMBER OF FRAMES BASED ON LENGTH OF AUDIO AND videoAssetTrack.nominalFrameRate
+	  ////////////////////////////////////
+
+    float fltDuration = self.audioPlayer.duration;
+    float fltFrameNumberEstimate = fltDuration * mediaFPS;
+    mediaFile.frameNumberEstimate = (int)fltFrameNumberEstimate;
+    NSLog(@"ESTIMATED FRAME COUNT is : %d ", mediaFile.frameNumberEstimate);
+
+   }
+
+
 
 	////////////////////////////////////
 	// START PROCESSING FRAMES OF MEDIA FILE
@@ -587,7 +609,17 @@
 	////////////////////////////////////
 
 	//NSTimer *playbackTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(showProgress:) userInfo:nil repeats:YES];	
-	playbackTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(showProgress:) userInfo:nil repeats:YES];	
+	//playbackTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(showProgress:) userInfo:nil repeats:YES];
+
+  //NSTimeInterval fltTimeInMiliseconds = [[NSDate date] timeIntervalSince1970];  
+  //mediaFile.startTime = fltTimeInMiliseconds;
+
+  //float fltTimeInMiliseconds = [[NSDate date] timeIntervalSinceNow] * -1000.0;
+  //mediaFile.startTime = fltTimeInMiliseconds;
+
+  mediaFile.startTime = (long long)([[NSDate date] timeIntervalSince1970] * 1000.0);
+  mediaFile.checkTime = (long long)([[NSDate date] timeIntervalSince1970] * 1000.0);
+  playbackTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(showProgress:) userInfo:nil repeats:YES];	
 }
   
 - (void) pause:(CDVInvokedUrlCommand *)command {
@@ -660,7 +692,6 @@
 		self.loop = NO;
 	}
  }
-
 
  - (void) restart_OLD:(CDVInvokedUrlCommand *)command { 
 
@@ -779,8 +810,10 @@
 	int intMediaWidth = [[options objectForKey:@"mediaWidth"] integerValue];
 	int intMediaHeight = [[options objectForKey:@"mediaHeight"] integerValue];
 
-	NSString * strCloseIconPath = [options objectForKey:@"closeIconPath"];
-	
+  NSString * strCloseIconPath = [options objectForKey:@"closeIconPath"];
+
+	NSLog(@"strCloseIconPath %@", strCloseIconPath);
+
 	int intWindowWidth = self.rootView.frame.size.width;
 	int intWindowHeight = self.rootView.frame.size.height;
 
@@ -859,8 +892,11 @@
 	//btnClose.tag = 10; // close button tag
 	//[btnClose setbackgroundImage:[UIImage imageNamed:@"XXX.png"] forState:UIControlStateNormal];
 	
-	//NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/img/icon_resize.png"];		
-	NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent: strCloseIconPath];		
+	//NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/img/icon_resize.png"];
+  NSString *strFilePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent: strCloseIconPath];
+
+  NSLog(@"strFilePath %@", strFilePath);
+
 	UIImage *image =  [UIImage imageWithContentsOfFile: strFilePath];
 	
 	//NSString *strImageName = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"www/img/icon_resize.png"];		
@@ -2084,11 +2120,161 @@
 	{
 		return;
 	}
+  
+  //NSTimeInterval fltTimeInMiliseconds = [[NSDate date] timeIntervalSince1970];
+  ///float fltElapsed = fltTimeInMiliseconds - mediaFile.startTime;
+  //mediaFile.startTime = fltTimeInMiliseconds;
+
+  //float fltTimeInMiliseconds = [[NSDate date] timeIntervalSinceNow] * -1000.0;
+  //float fltElapsed = fltTimeInMiliseconds - mediaFile.startTime;
+
+  //mediaFile.startTime = fltTimeInMiliseconds;
+
+  float fltElapsed = 0;
+  float fltElapsedRounded = 0;
+  long long lngElapsedCheckTime = (long long)([[NSDate date] timeIntervalSince1970] * 1000.0) - mediaFile.checkTime;
+
+  //NSLog(@"Float Elapsed: %lld", lngElapsedCheckTime);
+
+  if (lngElapsedCheckTime < 1000)
+  {
+    return;
+  }
+  else
+  {
+    long long lngElapsedStartTime = (long long)([[NSDate date] timeIntervalSince1970] * 1000.0) - mediaFile.startTime;
+    fltElapsed = (lngElapsedStartTime / 1000.0); // ADDING 0.5 IS THE CHEAP WAY OF ROUNDING UP!
+    fltElapsedRounded = fltElapsed + 0.5; // ADDING 0.5 IS THE CHEAP WAY OF ROUNDING UP!
+    mediaFile.timeElapsed = fltElapsed;
+    mediaFile.checkTime = (long long)([[NSDate date] timeIntervalSince1970] * 1000.0);
+  }
+  
+  if (self.mediaType == 1) // 1 == video
+  {
+    float fltCurrentAudioFrame = self.audioPlayer.currentTime * mediaFile.fpsInput;
+
+    int intCurrentAudioFrame = (int)fltCurrentAudioFrame;
+    int intCurrentVideFrame = mediaFile.frameNumber;
+
+    int intDifferential = intCurrentVideFrame - intCurrentAudioFrame;
+    float fltThrottle = 1;
+
+    //if (intDifferential < 0)
+    //{
+      //fltThrottle = 1.0 - intDifferential / mediaFile.fpsInput;
+      //[self.audioPlayer setRate:0.95f];
+    //}
+    //else if (intDifferential > 0)
+    //{
+      //fltThrottle = 1.0 + intDifferential / mediaFile.fpsInput;
+      //[self.audioPlayer setRate:1.05f];
+    //}
+
+    fltThrottle = 1.0 + intDifferential / mediaFile.fpsInput;
+
+    [self.audioPlayer setRate:fltThrottle];
+
+    //float fltEstimatedCurrentVideoFrame = mediaFile.timeElapsed * mediaFile.fpsInput;
+    //int intEstimatedCurrentVideoFrame = (int)fltEstimatedCurrentVideoFrame;
+
+    //int intVideoFrameDifferential = mediaFile.frameNumber - intEstimatedCurrentVideoFrame;    
+
+    //NSLog(@"intDifferential: %d", intDifferential);
+    //NSLog(@"fltThrottle: %f", fltThrottle);    
+
+  }
+
+  //NSLog(@"self.audioPlayer.duration: %f", self.audioPlayer.duration);
+  //NSLog(@"self.audioPlayer.currentTime: %f", self.audioPlayer.currentTime);
+  //NSLog(@"Audio Remaining: %f", audioRemaining);
+  //NSLog(@"Video Remaining: %f", videoRemaining);
+  //NSLog(@"audioDiff: %f", audioDiff);
+  //NSLog(@"Elapsed: %f", fltElapsed);
+  //NSLog(@"Elapsed Rounded: %f", fltElapsedRounded);
+  //NSLog(@"audioDiff: %f", audioDiff);
+  //NSLog(@"mediaFile.timeElapsed: %f", mediaFile.timeElapsed);
+  
+  self.jsonResults[@"duration"] = [[NSNumber numberWithFloat:mediaFile.duration] stringValue];
+	self.jsonResults[@"timeElapsed"] = [[NSNumber numberWithFloat:fltElapsedRounded] stringValue];	
+
+	self.pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.jsonResults];	
+
+	[self.pluginResult setKeepCallbackAsBool:YES]; // here we tell Cordova not to cleanup the callback id after sendPluginResult()					
+	[self.commandDelegate sendPluginResult:self.pluginResult callbackId:self.callbackId];		
+
+  if (mediaFile.timeElapsed >= self.audioPlayer.duration)
+  {
+    //mediaFile.timeElapsed = self.audioPlayer.duration;
+
+    self.seekTo = 0;  // RESET ANY SEEK
+
+    mediaFile.timeElapsed = 0;
+    mediaFile.startTime = (long long)([[NSDate date] timeIntervalSince1970] * 1000.0);
+    mediaFile.checkTime = (long long)([[NSDate date] timeIntervalSince1970] * 1000.0);
+
+	  [playbackTimer invalidate];
+	  playbackTimer = nil;
+  }
+
+  return;
+
+  float audioRemaining = self.audioPlayer.duration - self.audioPlayer.currentTime;
+  float videoRemaining = self.audioPlayer.duration - fltElapsed;
+
+  ///////////////////////////////
+	// THROTTLE AUDIO RATE!!!!!
+	///////////////////////////////
+		
+	float audioDiff = audioRemaining - videoRemaining;
+  float fltThrottle = audioDiff/ 0.5;
+
+   //[self.audioPlayer setRate:fltThrottle];
+
+  if (fltThrottle > 1.05)
+  {
+    [self.audioPlayer setRate:1.05f];
+  }
+  else if (fltThrottle < 0.95)
+  {
+    [self.audioPlayer setRate:0.90f];
+  }
+  else
+  {
+    [self.audioPlayer setRate:1.00f];
+  }
+
+	//NSLog(@"Current audio time : %f %f %f %f", audioDuration, audioRemaining, videoRemaining, audioDiff);	
+
+  //[self.audioPlayer setRate:0.75f];
+
+	if (audioDiff > 0.5)
+	{
+		//[self.audioPlayer setRate:0.5f];
+	}
+	else if (audioDiff > 0.25 && audioDiff <= 0.5)
+	{
+		//[self.audioPlayer setRate:0.75f];
+	}
+	else if (audioDiff > -0.25 && audioDiff <= 0.25)
+	{
+		//[self.audioPlayer setRate:1.0f];
+	}
+	else if (audioDiff > -0.50 && audioDiff <= -0.25)
+	{
+		//[self.audioPlayer setRate:1.25f];
+	}
+	else if (audioDiff < -0.5)
+	{
+		//[self.audioPlayer setRate:1.50f];
+	}
+
+  
+
 
 	int intCurrentTime = (mediaFile.currentTime + 0.5);
 
-	float audioRemaining = self.audioPlayer.duration - self.audioPlayer.currentTime;
-	float videoRemaining = self.audioPlayer.duration - mediaFile.currentTime;
+	//float audioRemaining = self.audioPlayer.duration - self.audioPlayer.currentTime;
+	//float videoRemaining = self.audioPlayer.duration - mediaFile.currentTime;
 
 	if (intCurrentTime > mediaFile.currentTimeInSecs)
 	{		
@@ -3775,7 +3961,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
 			self.seekTo = 0;
 		}		
 
-		NSLog(@"XXXX Frame Start: %i", intFrameStart); 
+		//NSLog(@"XXXX Frame Start: %i", intFrameStart); 
 
 		while (self.stop == NO) 
 		{
@@ -3946,7 +4132,9 @@ static CVReturn renderCallback(CVDisplayLinkRef displayLink,
 
 	// http://stackoverflow.com/questions/31272799/read-avasset-into-frames-and-compile-back-to-video 
 	
-	//NSLog(@"Frame: %i, Start: %i", intFrameNumber, intFrameStart); 
+	  //NSLog(@"Frame: %i, Start: %i", intFrameNumber, intFrameStart); 
+
+    self.frameNumber = intFrameNumber;
 
     if (reader.status == AVAssetReaderStatusReading && ! videoEncodingIsFinished)
     {
